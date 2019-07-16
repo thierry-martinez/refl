@@ -1,0 +1,5 @@
+.merlin
+*~
+/_build/
+/ppx_refl.install
+/ppx_refl.opam

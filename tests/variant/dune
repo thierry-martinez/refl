@@ -1,0 +1,5 @@
+(test
+  (name variant)
+  (preprocess (pps ppx_refl))
+  (libraries ppx_refl.runtime)
+  (flags -dsource))
