@@ -1,6 +1,6 @@
 # Efficient and type-safe type reflection for OCaml
 
-`ppx_refl` provides runtime representations for most OCaml types, and a
+`refl` provides runtime representations for most OCaml types, and a
 "one size fits all" deriving plugin.
 This plugin automatically derives runtime type
 representations from type declarations, allowing most other deriving
@@ -12,7 +12,7 @@ alternatives to `ppx_deriving` standard plugins: `show`, `compare`,
 
 Once `refl` is derived for a given type, values of this type can be
 used on all (compatible) functions. This is the main motivation behind
-`ppx_refl`: instead of having to decide which derivers to use at the
+`refl`: instead of having to decide which derivers to use at the
 type declaration point, it is sufficient to derive only `refl`, and
 then this type can be used with all functions operating on such
 runtime representations, even functions that are defined after the
