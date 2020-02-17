@@ -1,3 +1,3 @@
 (test
   (name list_manual)
-  (libraries ppx_refl.runtime))
+  (libraries refl.runtime))

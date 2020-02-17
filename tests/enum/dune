@@ -1,5 +1,5 @@
 (test
   (name enum)
-  (preprocess (pps ppx_refl))
-  (libraries ppx_refl.runtime)
+  (preprocess (pps refl))
+  (libraries refl.runtime)
   (flags -dsource))

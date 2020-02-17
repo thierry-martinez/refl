@@ -1,6 +1,6 @@
 (library
   (name refl)
-  (public_name ppx_refl.runtime)
-  (preprocess (pps ppx_refl))
+  (public_name refl.runtime)
+  (preprocess (pps refl))
   (flags -dsource)
-  (libraries ppx_refl.common))
+  (libraries refl.common))
