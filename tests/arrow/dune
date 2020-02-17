@@ -1,5 +1,5 @@
 (test
   (name arrow)
-  (preprocess (pps refl))
-  (libraries refl.runtime)
+  (preprocess (pps refl.ppx))
+  (libraries refl)
   (flags -dsource))

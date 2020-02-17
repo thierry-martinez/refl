@@ -1,5 +1,6 @@
 (library
-  (public_name refl)
+  (name ppx_refl)
+  (public_name refl.ppx)
   (kind ppx_rewriter)
   (preprocess (pps metaquot))
   (flags -open Stdcompat)
