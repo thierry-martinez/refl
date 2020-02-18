@@ -180,7 +180,7 @@ fun a_struct b_struct converters eq_gadt x ->
     (arity_a, arity_b) converters ->
     (gadt_a, gadt_b) eq option ->
     a -> b =
-  fun subvariables_a subvariables_b destruct_a construct_b converters eq_gadt
+  fun subvariables_a _subvariables_b destruct_a construct_b converters eq_gadt
       value ->
     let forall_construct :
       type forall b subarity_b .
@@ -328,7 +328,7 @@ fun a_struct b_struct converters eq_gadt x ->
 
   let rec convert_object :
     type a_types b_types structures_a structures_b
-      positive_a negative_a direct_a positive_b negative_b direct_b arity .
+      positive_a negative_a direct_a positive_b negative_b direct_b .
     (a_types, structures_a, arity_a, rec_arity_a, kinds_a, positive_a,
       negative_a, direct_a, gadt_a) object_methods ->
     (b_types, structures_b, arity_b, rec_arity_b, kinds_b, positive_b,

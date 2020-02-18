@@ -408,7 +408,7 @@ module ReflValueExp = ReflValue (Metapp_utils.Exp)
 
 module ReflValuePat = ReflValue (Metapp_utils.Pat)
 
-module ReflValueVal = ReflValue (Metapp_utils.Val)
+module ReflValueVal = ReflValue (Metapp_utils.Value)
 
 let structure_of_constr structure_of_type context ?rec_type
     (constr : Longident.t) (args : Parsetree.core_type list)
@@ -870,12 +870,12 @@ let make_attributes context ty attributes : Parsetree.expression =
   let cases =
     attributes |> List.map begin fun (attribute : Parsetree.attribute) ->
       let name = lid_of_attr_name attribute.attr_name.txt in
-      let expr =
-        match attribute.attr_payload with
-        | PStr [%str [%e? e]] -> e
-        | _ ->
-            Location.raise_errorf ~loc:attribute.attr_loc
-              "Expression expected" in
+      let name : Longident.t =
+        match name with
+        | Ldot (Lident "Ocaml", attr) ->
+            Ldot (Ldot (Lident "Refl", "Ocaml_attributes"), attr)
+        | _ -> name in
+      let expr = Metapp_utils.Exp.of_payload attribute.attr_payload in
       Ast_helper.Exp.case (Metapp_utils.Pat.construct name [])
         [%expr Some [%e expr]]
     end in
@@ -939,7 +939,7 @@ let rec structure_of_type context (ty : Parsetree.core_type)
     | { ptyp_desc = Ptyp_constr (constr, args); _ } ->
         begin match
           find_rec_type context constr.txt,
-          Metapp_utils.find_attr "nobuiltin" ty.ptyp_attributes
+          Metapp_utils.Attr.find "nobuiltin" ty.ptyp_attributes
         with
         | None, None ->
             structure_of_builtins_or_constr structure_of_type context ty
@@ -986,7 +986,7 @@ let rec structure_of_type context (ty : Parsetree.core_type)
           attributes = [%e attributes];
           desc = [%e desc];
         }] in
-  match Metapp_utils.chop_attr "opaque" ty.ptyp_attributes with
+  match Metapp_utils.Attr.chop "opaque" ty.ptyp_attributes with
   | None -> transform_attr ty.ptyp_attributes
   | Some (_, attributes) ->
       context.constraints |> apply_ref (Constraints.add_direct_kind "Opaque");
@@ -1227,7 +1227,7 @@ let make_constructor_kind context
     Metapp_utils.value list * Parsetree.core_type * Parsetree.core_type list *
     Parsetree.expression * Metapp_utils.value list *
     Parsetree.type_declaration list =
-  let items = List.mapi (fun i _ -> Metapp_utils.Val.var (item i)) args in
+  let items = List.mapi (fun i _ -> Metapp_utils.Value.var (item i)) args in
   match constructor.pcd_args with
   | Pcstr_tuple _ ->
       let structures = List.map (structure_of_type context) args in
@@ -1269,13 +1269,13 @@ let make_constructor_args (constructor : Parsetree.constructor_declaration)
   | _ :: _ ->
       let args =
         match constructor.pcd_args with
-        | Pcstr_tuple _ -> Metapp_utils.Val.tuple items
+        | Pcstr_tuple _ -> Metapp_utils.Value.tuple items
         | Pcstr_record labels ->
            let fields =
              List.map2 begin fun (label : Parsetree.label_declaration) x ->
                Longident.Lident label.pld_name.txt, x
              end labels items in
-           Metapp_utils.Val.record fields in
+           Metapp_utils.Value.record fields in
       Some args
 
 let tuple_of_types types =
@@ -1360,7 +1360,7 @@ let structure_of_exists single_constructor i context
   context.eqs_counter := eq_index + 1;
   let constructor_args = make_constructor_args constructor items in
   let constructor_with_args =
-    Metapp_utils.Val.force_construct
+    Metapp_utils.Value.force_construct
       (Metapp_utils.mkloc (Longident.Lident constructor.pcd_name.txt))
       constructor_args in
   let count = peano_type_of_int free_variable_count in
@@ -1377,7 +1377,7 @@ let structure_of_exists single_constructor i context
         Parsetree.Ptype_variant [Ast_helper.Type.constructor
            (Metapp_utils.mkloc branch_constructor)
            ~args:(Pcstr_tuple args) ~res] in
-      Metapp_utils.Val.construct (Lident branch_constructor) items,
+      Metapp_utils.Value.construct (Lident branch_constructor) items,
       branch_name,
       Ast_helper.Type.mk (Metapp_utils.mkloc branch_name) ~kind
         ~params:(List.map (fun x -> x, Asttypes.Invariant)
@@ -1553,15 +1553,15 @@ let structure_of_constructor single_constructor context i
       }] in
     let value_eqs =
       List.init eq_count
-        (fun _ -> Metapp_utils.Val.construct (refl_dot "Eq") []) in
+        (fun _ -> Metapp_utils.Value.construct (refl_dot "Eq") []) in
     let sequence =
-      Metapp_utils.Val.tuple
+      Metapp_utils.Value.tuple
         [ReflValueVal.sequence_of_list destructs;
           ReflValueVal.sequence_of_list value_eqs] in
     let choice = ReflValueVal.choice_of_int i sequence in
     let args = make_constructor_args constructor items in
     let construct =
-      Metapp_utils.Val.force_construct
+      Metapp_utils.Value.force_construct
         (Metapp_utils.mkloc (Longident.Lident constructor.pcd_name.txt)) args in
     let choice_ty =
       [%type: [%t type_sequence_of_list types]
@@ -1705,7 +1705,7 @@ let type_structure_of_type_info rec_types type_info =
           let constructor_name = Printf.sprintf "%s__sub_%d"
             (String.capitalize_ascii context.name) index in
           let constructor =
-            Metapp_utils.Val.construct (Lident constructor_name) [] in
+            Metapp_utils.Value.construct (Lident constructor_name) [] in
           type_extensions := (
             Ast_helper.Te.mk (Metapp_utils.mkloc (refl_dot "sub_gadt_ext"))
          ~params:[[%type: _], Invariant; [%type: _], Invariant]
@@ -1895,7 +1895,7 @@ let modules_of_type_declarations (rec_flag, tds) =
 (*
   let rec_arity_name = (List.hd type_structures).context.type_names.rec_arity in
   let desc_sig =
-    Ast_helper.Sig.value (Ast_helper.Val.mk { loc; txt = rec_arity_name }
+    Ast_helper.Sig.value (Ast_helper.Value.mk { loc; txt = rec_arity_name }
       (Ast_helper.Typ.constr { loc; txt = (refl_dot "rec_arity") }
          [type_constr_of_string rec_arity_name;
            type_constr_of_string rec_arity_name])) :: desc_sig in
@@ -1908,7 +1908,7 @@ let modules_of_type_declarations (rec_flag, tds) =
   let desc_def =
     [Ast_helper.Str.type_ Recursive type_declarations] @
     List.map Ast_helper.Str.type_extension type_extensions @
-    [Ast_helper.Str.value Recursive desc_bindings] in
+    [Ast_helper.Str.value !recursive desc_bindings] in
   let desc_sig =
     Ast_helper.Sig.type_ Recursive type_declarations :: val_sig @ desc_sig in
   let desc_def =
@@ -1977,12 +1977,12 @@ let expr (mapper : Ast_mapper.mapper) (e : Parsetree.expression)
 
 let get_derivers (attributes : Parsetree.attributes)
     : Parsetree.expression list =
-  match Metapp_utils.find_attr "deriving" attributes with
+  match Metapp_utils.Attr.find "deriving" attributes with
   | None -> []
   | Some derivers ->
       let derivers =
         Metapp_utils.expression_of_payload
-          (Metapp_utils.attr_payload derivers) in
+          (Metapp_utils.Attr.payload derivers) in
       match derivers.pexp_desc with
       | Pexp_tuple derivers -> derivers
       | _ -> [derivers]

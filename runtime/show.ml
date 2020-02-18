@@ -33,7 +33,7 @@ let rec pp :
       (arity, direct) Printers.t -> a Printer.t =
 fun desc printers fmt x ->
   let pp_tuple printers tuple =
-    let pp_tuple_item (Tuple.Fold { desc; value })
+    let pp_tuple_item (Tuple.Fold { desc; value; _ })
         comma =
       if comma then
         begin
@@ -51,7 +51,7 @@ fun desc printers fmt x ->
     Format.pp_close_box fmt () in
 
   let pp_record printers record =
-    let pp_record_field (Record.Fold { field; value }) comma =
+    let pp_record_field (Record.Fold { field; value; _ }) comma =
       if comma then
         begin
           Format.pp_print_string fmt ";";
@@ -64,7 +64,7 @@ fun desc printers fmt x ->
         Format.pp_print_space fmt ();
         pp desc printers fmt value in
       begin match field with
-      | Poly { label; destruct; variables } ->
+      | Poly { label; destruct; variables; _ } ->
           let MakeAppend subarity = make_append variables.direct_count in
           let printers =
             printers |>
@@ -74,7 +74,7 @@ fun desc printers fmt x ->
           let ForallDestruct { desc; destruct } =
             destruct.forall_destruct variables.direct_count subarity in
           pp_field label desc printers (destruct value)
-      | Mono { label; desc } -> pp_field label desc printers value;
+      | Mono { label; desc; _ } -> pp_field label desc printers value;
       end;
       Format.pp_close_box fmt ();
       true in
@@ -109,8 +109,9 @@ fun desc printers fmt x ->
                 exists_count exists
           | Constructor -> printers in
         begin match destruct.name, destruct.kind, destruct.values with
-        | "[]", Tuple { structure = [] }, _ -> Some (List.rev acc)
-        | "::", Tuple { structure = [desc; tail_desc] }, (value, (tail, ())) ->
+        | "[]", Tuple { structure = []; _ }, _ -> Some (List.rev acc)
+        | "::",
+          Tuple { structure = [desc; tail_desc]; _ }, (value, (tail, ())) ->
             to_list_aux tail_desc tail printers
               (Value { desc; value; printers } :: acc)
         | _ -> None
@@ -119,7 +120,7 @@ fun desc printers fmt x ->
         let printers =
           Printers.make { f = pp } arguments transfer printers in
         to_list_aux desc value printers acc
-    | Rec { desc } ->
+    | Rec { desc; _ } ->
         to_list_aux desc value printers acc
     | RecArity { desc } ->
         to_list_aux desc value printers acc
@@ -191,7 +192,7 @@ fun desc printers fmt x ->
               exists_count exists
         | Constructor -> printers in
       begin match destruct.name, destruct.kind with
-      | "::", Tuple { structure = [head_desc; tail_desc] } ->
+      | "::", Tuple { structure = [head_desc; tail_desc]; _ } ->
           begin match to_list desc x printers with
           | Some list ->
               Format.pp_open_box fmt 1;
@@ -271,7 +272,7 @@ fun desc printers fmt x ->
       let printers =
         Printers.make { f = pp } arguments transfer printers in
       pp desc printers fmt x
-  | Rec { desc } ->
+  | Rec { desc; _ } ->
       pp desc printers fmt x
   | RecArity { desc } ->
       pp desc printers fmt x

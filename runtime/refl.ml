@@ -21,3 +21,8 @@ include Iter
 include Fold
 
 include Make
+
+module Ocaml_attributes = struct
+  type ('a, 'arity, 'b) typed_attribute_kind +=
+    | Attribute_doc : ('a, 'arity, string) typed_attribute_kind
+end

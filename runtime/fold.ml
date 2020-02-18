@@ -22,16 +22,16 @@ let rec fold :
 fun desc folds x acc ->
 
   let fold_tuple folds tuple acc =
-    let fold_tuple_item (Tuple.Fold { desc; value }) acc =
+    let fold_tuple_item (Tuple.Fold { desc; value; _ }) acc =
       fold desc folds value acc in
     Tuple.fold fold_tuple_item tuple acc in
 
   let fold_record folds record acc =
-    let fold_record_field (Record.Fold { field; value }) acc =
+    let fold_record_field (Record.Fold { field; value; _ }) acc =
       let fold_field _label desc folds value acc =
         fold desc folds value acc in
       match field with
-      | Poly { label; destruct; variables } ->
+      | Poly { label; destruct; variables; _ } ->
           let MakeAppend subarity = make_append variables.direct_count in
           let folds =
             folds |>
@@ -41,7 +41,7 @@ fun desc folds x acc ->
           let ForallDestruct { desc; destruct } =
             destruct.forall_destruct variables.direct_count subarity in
           fold_field label desc folds (destruct value) acc
-      | Mono { label; desc } -> fold_field label desc folds value acc in
+      | Mono { label; desc; _ } -> fold_field label desc folds value acc in
     Record.fold fold_record_field record acc in
 
   match desc with
@@ -71,7 +71,7 @@ fun desc folds x acc ->
   | Variant { constructors; destruct; _ } ->
       let Destruct destruct = Variant.destruct constructors (destruct x) in
       begin match destruct.kind with
-      | Constructor { name; argument }->
+      | Constructor { argument; _ }->
           begin match argument with
           | None -> acc
           | Some { desc; value } ->
@@ -81,7 +81,7 @@ fun desc folds x acc ->
           fold desc folds value acc
       end
   | Object { methods; destruct; _ } ->
-      let fold_object_item (Object.Fold { desc; method_ }) acc =
+      let fold_object_item (Object.Fold { desc; method_; _ }) acc =
         fold desc folds (method_ ()) acc in
       Object.fold fold_object_item { structure = methods; methods = destruct x }
         acc
@@ -96,7 +96,7 @@ fun desc folds x acc ->
       let folds =
         Vector.make { f = fold } arguments transfer folds in
       fold desc folds x acc
-  | Rec { desc } ->
+  | Rec { desc; _ } ->
       fold desc folds x acc
   | RecArity { desc } ->
       fold desc folds x acc
@@ -104,7 +104,7 @@ fun desc folds x acc ->
   | SelectGADT { desc; _ } ->
       fold desc folds x acc  | SubGADT { desc; _ } ->
       fold desc folds x acc
-  | Attributes { desc } ->
+  | Attributes { desc; _ } ->
       fold desc folds x acc
   | _ -> . in
   fold desc (Vector.to_unary folds) x acc

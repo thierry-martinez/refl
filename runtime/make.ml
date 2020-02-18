@@ -1,7 +1,5 @@
 open Desc
 
-open Tools
-
 module StringMap = Stdlib.Map.Make (String)
 
 type ('a, 'arity, 'b) typed_attribute_kind +=

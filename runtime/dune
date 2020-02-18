@@ -2,5 +2,4 @@
   (name refl)
   (public_name refl)
   (preprocess (pps refl.ppx))
-  (flags -dsource)
   (libraries refl.common))

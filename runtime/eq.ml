@@ -20,7 +20,7 @@ let rec equal_poly :
 fun desc_a desc_b equalers ->
   let equal_tuple :
     type a b structure arity_a arity_b rec_arity positive negative direct
-      tag gadt_a gadt_b.
+      gadt_a gadt_b.
     (arity_a, arity_b, direct) Equalers.t ->
   (a, structure, arity_a, rec_arity, [< Kinds.comparable],
     positive, negative, direct, gadt_a) Tuple.t ->
@@ -30,7 +30,7 @@ fun desc_a desc_b equalers ->
   fun equalers x y ->
     match
       Tuple.find [x; y]
-        begin fun (Find { section = [a; b]; items = [x; y]; _ }) ->
+        begin fun (Find { items = [x; y]; _ }) ->
           if equal_poly x.desc y.desc equalers x.value y.value then
             None
           else
@@ -41,7 +41,7 @@ fun desc_a desc_b equalers ->
     | Some () -> false in
   let equal_record :
     type a b structure arity_a arity_b rec_arity positive negative direct
-      tag gadt_a gadt_b.
+      gadt_a gadt_b.
     (arity_a, arity_b, direct) Equalers.t ->
   (a, structure, arity_a, rec_arity, [< Kinds.comparable],
     positive, negative, direct, gadt_a) Record.t ->
@@ -51,7 +51,7 @@ fun desc_a desc_b equalers ->
   fun equalers x y ->
     match
       Record.find [x; y]
-        begin fun (Find { section = [a; b]; items = [x; y]; _ }) ->
+        begin fun (Find {items = [x; y]; _ }) ->
           match x.field, y.field with
           | Mono x', Mono y' ->
               if equal_poly x'.desc y'.desc equalers x.value y.value then
@@ -136,10 +136,10 @@ fun desc_a desc_b equalers ->
           let Eq =
             selection_functional_head x.index_desc y.index_desc in
           match x.kind, y.kind with
-          | Constructor { argument = None },
-            Constructor { argument = None } -> true
-          | Constructor { argument = Some x },
-            Constructor { argument = Some y } ->
+          | Constructor { argument = None; _ },
+            Constructor { argument = None; _ } -> true
+          | Constructor { argument = Some x; _ },
+            Constructor { argument = Some y; _ } ->
               equal_poly x.desc y.desc equalers x.value y.value
           | Inherit x, Inherit y ->
               equal_poly x.desc y.desc equalers x.value y.value

@@ -21,7 +21,6 @@ fun a_struct b_struct mapping x ->
   let rec_map a_desc b_desc =
     map a_desc b_desc mapping in
   let module Mapper = struct
-    type nonrec structure = structure
     type nonrec rec_arity = rec_arity
     type nonrec positive = positive
     type nonrec negative = negative

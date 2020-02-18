@@ -31,7 +31,7 @@ let rec compare_gen :
 fun desc_a desc_b poly comparers ->
   let compare_tuple :
     type a b structure arity_a arity_b rec_arity positive negative direct
-      tag gadt_a gadt_b.
+      gadt_a gadt_b.
   (a, structure, arity_a, rec_arity, [< Kinds.comparable],
     positive, negative, direct, gadt_a) Tuple.t ->
   (b, structure, arity_b, rec_arity, [< Kinds.comparable],
@@ -42,7 +42,7 @@ fun desc_a desc_b poly comparers ->
   fun x y poly comparers ->
     match
       Tuple.find [x; y]
-        begin fun (Find { section = [a; b]; items = [x; y]; _ }) ->
+        begin fun (Find { items = [x; y]; _ }) ->
           match compare_gen x.desc y.desc poly comparers x.value y.value with
           | 0 -> None
           | result -> Some result
@@ -52,7 +52,7 @@ fun desc_a desc_b poly comparers ->
     | Some result -> result in
   let compare_record :
     type a b structure arity_a arity_b rec_arity positive negative direct
-      tag gadt_a gadt_b.
+      gadt_a gadt_b.
   (a, structure, arity_a, rec_arity, [< Kinds.comparable],
     positive, negative, direct, gadt_a) Record.t ->
   (b, structure, arity_b, rec_arity, [< Kinds.comparable],
@@ -63,7 +63,7 @@ fun desc_a desc_b poly comparers ->
   fun x y poly comparers ->
     match
       Record.find [x; y]
-        begin fun (Find { section = [a; b]; items = [x; y]; _ }) ->
+        begin fun (Find { items = [x; y]; _ }) ->
           match x.field, y.field with
           | Mono x', Mono y' ->
               match
@@ -158,10 +158,10 @@ fun desc_a desc_b poly comparers ->
           let Eq =
             selection_functional_head x.index_desc y.index_desc in
           match x.kind, y.kind with
-          | Constructor { argument = None },
-            Constructor { argument = None } -> 0
-          | Constructor { argument = Some x },
-            Constructor { argument = Some y } ->
+          | Constructor { argument = None; _ },
+            Constructor { argument = None; _ } -> 0
+          | Constructor { argument = Some x; _ },
+            Constructor { argument = Some y; _ } ->
               compare_gen x.desc y.desc poly comparers x.value y.value
           | Inherit x, Inherit y ->
               compare_gen x.desc y.desc poly comparers x.value y.value
