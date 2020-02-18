@@ -1,4 +1,4 @@
 (test
-  (name gadt)
+  (name deep_variables)
   (preprocess (pps refl.ppx))
   (libraries refl))

@@ -11,10 +11,10 @@ module Mappers = SignedVector (Mapper)
 let rec map :
   type structure a_struct b_struct a_arity b_arity rec_arity
         kinds positive negative direct gadt .
-  (a_struct, structure, a_arity, rec_arity, kinds, positive, negative, direct,
-    gadt) desc ->
-  (b_struct, structure, b_arity, rec_arity, kinds, positive, negative, direct,
-    gadt) desc ->
+  (a_struct, structure, a_arity, rec_arity, kinds, positive,
+    negative, direct, gadt) desc ->
+  (b_struct, structure, b_arity, rec_arity, kinds, positive,
+    negative, direct, gadt) desc ->
   (a_arity, b_arity, positive, negative) Mappers.t ->
   (a_struct, b_struct) Mapper.t =
 fun a_struct b_struct mapping x ->
@@ -91,6 +91,8 @@ fun a_struct b_struct mapping x ->
       map a.desc b.desc mapping x
   | Opaque a, Opaque b ->
       map a.desc b.desc mapping x
+  | MapOpaque, MapOpaque ->
+      x
   | Arrow { parameter = a_parameter; result = a_result },
     Arrow { parameter = b_parameter; result = b_result } ->
       (fun parameter ->

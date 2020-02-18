@@ -5,33 +5,50 @@ open Tools
 type ('a, 'arity, 'b) typed_attribute_kind +=
   | Attribute_value : ('a, 'arity, int) typed_attribute_kind
 
-let constructor_value :
-  type types structure .
-  int ->
-  (types, structure, 'arity, 'rec_arity, 'kinds, 'positive,
-    'negative, 'direct, 'gadt) constructor ->
-  int =
-fun default_value constructor ->
-  match constructor with
-  | Constructor constructor ->
-      begin match constructor.attributes.typed Attribute_value with
-      | Some value -> value
-      | _ -> default_value
-      end
-  | Exists _ -> default_value
+let rec lift_zero (l : ('cases binary_choice * int option) list) :
+    (('cases * _) binary_choice * int option) list =
+  match l with
+  | [] -> []
+  | (choice, value) :: tl -> (CZero choice, value) :: lift_zero tl
 
-let rec constructor_fold :
+let rec lift_one (l : ('cases binary_choice * int option) list) :
+    ((_ * 'cases) binary_choice * int option) list =
+  match l with
+  | [] -> []
+  | (choice, value) :: tl -> (COne choice, value) :: lift_one tl
+
+let rec merge l0 l1 =
+  match l0, l1 with
+  | hd0 :: tl0, hd1 :: tl1 -> hd0 :: hd1 :: merge tl0 tl1
+  | _, [] -> l0
+  | [], l1 -> l1
+
+let rec constructor_assoc :
   type cases structures .
-  (int -> int -> int) -> int -> int ->
   (cases, structures, 'arity, 'rec_arity, 'kinds, 'positive,
     'negative, 'direct, 'gadt) constructors ->
-  int =
-fun op value default_value constructors ->
+  (cases binary_choice * int option) list =
+fun constructors ->
   match constructors with
-  | CNil -> value
-  | CCons { head; tail } ->
-      let head_value = constructor_value default_value head in
-      constructor_fold op (op value head_value) (succ head_value) tail
+  | CNode { zero; one } ->
+      merge
+        (lift_zero (constructor_assoc zero))
+        (lift_one (constructor_assoc one))
+  | CLeaf constructor ->
+      begin match constructor with
+      | Constructor { kind = CTuple TNil; eqs = ENil; attributes; _ } ->
+          [(CEnd ((), ()), attributes.typed Attribute_value)]
+      | _ -> []
+      end
+
+let constructor_assoc_with_default_values constructors =
+  let assoc = constructor_assoc constructors in
+  let put_default_value (default, accu) (choice, value) =
+    let value = Option.value ~default value in
+    (succ value, (choice, value) :: accu) in
+  let (_default_value, accu) =
+    List.fold_left put_default_value (0, []) assoc in
+  List.rev accu
 
 let fold :
   type a .
@@ -41,9 +58,11 @@ let fold :
   int =
 fun op constructors ->
   match constructors with
-  | RecArity { desc = Constr { constructors = CCons { head; tail }; _ }; _} ->
-      let head_value = constructor_value 0 head in
-      constructor_fold op head_value (succ head_value) tail
+  | RecArity { desc = Constr { constructors; _ }; _} ->
+      match constructor_assoc_with_default_values constructors with
+      | [] -> 0
+      | (_, value) :: tail ->
+          List.fold_left (fun a (_, b) -> op a b) value tail
 
 let min :
   type a .
@@ -61,52 +80,24 @@ let max :
 fun constructors ->
   fold max constructors
 
-let rec value_of_choice :
-  type cases structures .
-  int ->
-  (cases, structures, 'arity, 'rec_arity, 'kinds, 'positive,
-    'negative, 'direct, 'gadt) constructors ->
-  cases choice -> int =
-fun default_value constructors choice ->
-  match constructors, choice with
-  | CCons { head; _ }, CFirst _ ->
-      constructor_value default_value head
-  | CCons { head; tail }, CNext choice ->
-      let head_value = constructor_value default_value head in
-      value_of_choice (succ head_value) tail choice
-  | _ -> .
+let check_choice (c : 'cases binary_choice)
+    ((c', _) : ('cases binary_choice * int)) =
+  Tools.equal_binary_choice c c'
 
-let to_int :
+let check_value (v : int)
+    ((_, v') : ('cases binary_choice * int)) =
+  v = v'
+
+let to_int_opt :
   type a .
   (a, [`RecArity of [`Constr of 'structures] * _],
     'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
-  a -> int =
+  a -> int option =
 fun desc value ->
   match desc with
   | RecArity { desc = Constr { constructors; destruct; _ }; _ } ->
-      value_of_choice 0 constructors (destruct value)
-
-let rec of_int_aux :
-  type cases structures .
-  int ->
-  (cases, structures, 'arity, 'rec_arity, 'kinds, 'positive,
-    'negative, 'direct, 'gadt) constructors ->
-  int -> cases choice option =
-fun default_value constructors value ->
-  match constructors with
-  | CCons { head; tail } ->
-      let head_value = constructor_value default_value head in
-      begin if value = head_value then
-        match head with
-        | Constructor { kind = CTuple TNil; eqs = ENil; _ } ->
-            Some (CFirst ((), ()))
-        | _ -> None
-      else
-        match of_int_aux (succ head_value) tail value with
-        | Some choice -> Some (CNext choice)
-        | None -> None
-      end
-  | _ -> None
+      Option.map snd (List.find_opt (check_choice (destruct value))
+        (constructor_assoc_with_default_values constructors))
 
 let of_int_opt :
   type a .
@@ -116,9 +107,9 @@ let of_int_opt :
 fun desc value ->
   match desc with
   | RecArity { desc = Constr { construct; constructors; _ }; _ } ->
-      match of_int_aux 0 constructors value with
-      | None -> None
-      | Some choice -> Some (construct choice)
+      Option.map (fun item -> construct (fst item))
+        (List.find_opt (check_value value)
+           (constructor_assoc_with_default_values constructors))
 
 let to_string :
   type a .
@@ -137,21 +128,19 @@ let rec of_string_aux :
   (cases, structures, 'arity, 'rec_arity, 'kinds, 'positive,
     'negative, 'direct, 'gadt) constructors ->
   string ->
-  cases choice option =
+  cases binary_choice option =
 fun constructors value ->
   match constructors with
-  | CCons { head; tail } ->
-      begin match head with
-      | Constructor c when c.name = value ->
-          begin match c.kind, c.eqs with
-          | CTuple TNil, ENil ->
-              Some (CFirst ((), ()))
-          | _ -> None
-          end
-      | _ ->
-          match of_string_aux tail value with
-          | Some choice -> Some (CNext choice)
-          | None -> None
+  | CNode { zero; one } ->
+      begin match of_string_aux zero value with
+      | None -> Option.map (fun c -> COne c) (of_string_aux one value)
+      | some -> Option.map (fun c -> CZero c) some
+      end
+  | CLeaf (Constructor c) when c.name = value ->
+      begin match c.kind, c.eqs with
+      | CTuple TNil, ENil ->
+          Some (CEnd ((), ()))
+      | _ -> None
       end
   | _ -> None
 

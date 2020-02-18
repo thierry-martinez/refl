@@ -13,6 +13,15 @@ type 'types selection_of_choice =
       item : 'a;
     } -> 'types selection_of_choice
 
+let rec equal_binary_choice : type cases .
+  cases binary_choice -> cases binary_choice -> bool =
+fun c c' ->
+  match c, c' with
+  | CZero c, CZero c' -> equal_binary_choice c c'
+  | COne c, COne c' -> equal_binary_choice c c'
+  | CEnd _, CEnd _ -> true
+  | _ -> false
+
 let selection_of_choice : type types .
   types choice -> types selection_of_choice =
 fun choice ->
@@ -99,6 +108,68 @@ fun selection selection' ->
   match selection, selection' with
   | Next selection, Next selection' ->
       let Eq = selection_functional_tail selection selection' in
+      Eq
+
+let rec compare_binary_selection :
+  type index index' sequence sequence' head tail head' tail' .
+  (index, sequence, head, tail) binary_selection ->
+  (index', sequence', head', tail') binary_selection ->
+  (index, index') compare =
+fun selection selection' ->
+  match selection, selection' with
+  | BinaryStart, BinaryStart -> Equal Eq
+  | Zero selection, Zero selection' ->
+      begin match compare_binary_selection selection selection' with
+      | LessThan -> LessThan
+      | Equal Eq -> Equal Eq
+      | GreaterThan -> GreaterThan
+      end
+  | One selection, One selection' ->
+      begin match compare_binary_selection selection selection' with
+      | LessThan -> LessThan
+      | Equal Eq -> Equal Eq
+      | GreaterThan -> GreaterThan
+      end
+  | Select selection, Select selection' ->
+      begin match compare_binary_selection selection selection' with
+      | LessThan -> LessThan
+      | Equal Eq -> Equal Eq
+      | GreaterThan -> GreaterThan
+      end
+  | BinaryStart, _
+  | Zero _, One _
+  | _, Select _ -> LessThan
+  | _, BinaryStart
+  | One _, Zero _
+  | Select _, _ -> GreaterThan
+
+let rec binary_selection_functional_tail :
+    type index sequence head tail head' tail' .
+    (index, sequence, head, tail) binary_selection ->
+    (index, sequence, head', tail') binary_selection ->
+    (tail, tail') eq =
+fun selection selection' ->
+  match selection, selection' with
+  | BinaryStart, BinaryStart -> Eq
+  | Zero selection, Zero selection' ->
+      let Eq = binary_selection_functional_tail selection selection' in
+      Eq
+  | One selection, One selection' ->
+      let Eq = binary_selection_functional_tail selection selection' in
+      Eq
+  | Select selection, Select selection' ->
+      let Eq = binary_selection_functional_tail selection selection' in
+      Eq
+
+let binary_selection_functional_head :
+    type index sequence head head' tail tail'.
+    ([`Select of index], sequence, head, tail) binary_selection ->
+    ([`Select of index], sequence, head', tail') binary_selection ->
+    (head, head') eq =
+fun selection selection' ->
+  match selection, selection' with
+  | Select selection, Select selection' ->
+      let Eq = binary_selection_functional_tail selection selection' in
       Eq
 
 let rec equal_variable : type index_a index_b arity_a arity_b a b positive_a
@@ -642,10 +713,10 @@ module type Mapper = sig
 
   val map :
       ('a_arity, 'b_arity, 'positive, 'negative) t ->
-      ('a, 'structure, 'a_arity, rec_arity, 'kinds, 'positive, 'negative,
-        'direct, gadt) desc ->
-      ('b, 'structure, 'b_arity, rec_arity, 'kinds, 'positive, 'negative,
-        'direct, gadt) desc -> 'a -> 'b
+      ('a, 'structure, 'a_arity, rec_arity, 'kinds, 'positive,
+        'negative, 'direct, gadt) desc ->
+      ('b, 'structure, 'b_arity, rec_arity, 'kinds, 'positive,
+        'negative, 'direct, gadt) desc -> 'a -> 'b
 end
 
 type 'count map_length =
@@ -1214,18 +1285,22 @@ module Constructor = struct
       direct, gadt) constructors ->
     (b_cases, structures, b_arity, rec_arity, 'kinds_b, positive, negative,
       direct, gadt) constructors ->
-    a_cases choice -> b_cases choice =
+    a_cases binary_choice -> b_cases binary_choice =
   fun f a_constructors b_constructors a_choice ->
     match a_constructors, b_constructors, a_choice with
-    | CCons { tail = a_constructors; _ },
-      CCons { tail = b_constructors; _ },
-      CNext a_choice ->
-        CNext (map_choice f a_constructors b_constructors a_choice)
-    | CCons { head = Constructor { kind = a_constructor; eqs = a_eqs; _ }; _ },
-      CCons { head = Constructor { kind = b_constructor; eqs = b_eqs; _ }; _ },
-      CFirst (a_types, eqs) ->
+    | CNode { zero = a_constructors; _ },
+      CNode { zero = b_constructors; _ },
+      CZero a_choice ->
+        CZero (map_choice f a_constructors b_constructors a_choice)
+    | CNode { one = a_constructors; _ },
+      CNode { one = b_constructors; _ },
+      COne a_choice ->
+        COne (map_choice f a_constructors b_constructors a_choice)
+    | CLeaf (Constructor { kind = a_constructor; eqs = a_eqs; _ }),
+      CLeaf (Constructor { kind = b_constructor; eqs = b_eqs; _ }),
+      CEnd (a_types, eqs) ->
         let eqs = map_eqs a_eqs b_eqs eqs in
-        CFirst begin match a_constructor, b_constructor with
+        CEnd begin match a_constructor, b_constructor with
         | CTuple a_tuple, CTuple b_tuple ->
             (Tuple.map f a_tuple b_tuple a_types, eqs)
         | CRecord a_record, CRecord b_record ->
@@ -1260,21 +1335,25 @@ module Constructor = struct
         M.negative, 'direct, M.gadt) constructors ->
       (b_cases, structures, M.b_arity, M.rec_arity, kinds, M.positive,
         M.negative, 'direct, M.gadt) constructors ->
-      a_cases choice -> b_cases choice =
+      a_cases binary_choice -> b_cases binary_choice =
     fun a_constructors b_constructors a_choice ->
       match a_constructors, b_constructors, a_choice with
-      | CCons { tail = a_constructors; _ },
-        CCons { tail = b_constructors; _ },
-        CNext a_choice ->
-          CNext (map_choice a_constructors b_constructors a_choice)
-      | CCons { head = Constructor a; _ },
-        CCons { head = Constructor b; _ },
-        CFirst (values, eqs) ->
+      | CNode { zero = a_constructors; _ },
+        CNode { zero = b_constructors; _ },
+        CZero a_choice ->
+          CZero (map_choice a_constructors b_constructors a_choice)
+      | CNode { one = a_constructors; _ },
+        CNode { one = b_constructors; _ },
+        COne a_choice ->
+          COne (map_choice a_constructors b_constructors a_choice)
+      | CLeaf (Constructor a),
+        CLeaf (Constructor b),
+        CEnd (values, eqs) ->
           let eqs = map_eqs a.eqs b.eqs eqs in
-          CFirst (map_kind M.initial a.kind b.kind values, eqs)
-      | CCons { head = Exists a; _ },
-        CCons { head = Exists b; _ },
-        CFirst values ->
+          CEnd (map_kind M.initial a.kind b.kind values, eqs)
+      | CLeaf (Exists a),
+        CLeaf (Exists b),
+        CEnd values ->
           let Eq = selection_functional_head a.selection b.selection in
           let ExistsDestruct a' = a.destruct values in
           let MakeVariables { mapper; subarity_a; subarity_b } =
@@ -1291,7 +1370,7 @@ module Constructor = struct
             b.construct a'.exists_count a'.constraints subarity_b in
           let values =
             b'.construct (map_kind mapper a'.kind b'.kind a'.values) in
-          CFirst values
+          CEnd values
       | _ -> .
   end
 
@@ -1338,10 +1417,10 @@ module Constructor = struct
           constructors :
             ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
               'negative, 'direct, 'gadt) constructors;
-          index : ([`Succ of 'index], 'cases, 'value, _) selection;
+          index : ([`Select of 'index], 'cases, 'value, _) binary_selection;
           index_desc :
-            ([`Succ of 'index], 'structures, 'constructor, _)
-              selection;
+            ([`Select of 'index], 'structures, 'constructor, _)
+              binary_selection;
           constructor :
             ('value, 'constructor, 'arity, 'rec_arity,
               'kinds, 'positive, 'negative, 'direct, 'gadt) constructor;
@@ -1363,20 +1442,22 @@ module Constructor = struct
       kinds positive negative direct gadt .
     ('cases, 'structures, arity, rec_arity, kinds, positive, negative,
       direct, gadt) constructors ->
-    (index, 'cases, types, tail_cases) selection ->
-    (index, 'structures, structure, tail_structures) selection ->
+    (index, 'cases, types, tail_cases) binary_selection ->
+    (index, 'structures, structure, tail_structures) binary_selection ->
     (tail_cases, tail_structures, arity, rec_arity, kinds, positive,
       negative, direct, gadt) constructors ->
-    tail_cases choice -> ('cases, 'structures, arity, rec_arity, kinds,
+    tail_cases binary_choice -> ('cases, 'structures, arity, rec_arity, kinds,
       positive, negative, direct, gadt) destruct =
   fun constructors index index_desc subconstructors choice ->
     match subconstructors, choice with
-    | CCons { tail; _ }, CNext choice ->
-        destruct_choice constructors (Next index) (Next index_desc) tail choice
-    | CCons { head; _ }, CFirst arguments ->
+    | CNode { zero; _ }, CZero choice ->
+        destruct_choice constructors (Zero index) (Zero index_desc) zero choice
+    | CNode { one; _ }, COne choice ->
+        destruct_choice constructors (One index) (One index_desc) one choice
+    | CLeaf head, CEnd arguments ->
         let make name values kind link =
           Destruct {
-            constructors; index = Next index; index_desc = Next index_desc;
+            constructors; index = Select index; index_desc = Select index_desc;
             constructor = head; values; name; kind; link } in
         begin match head, arguments with
         | Constructor cstr, (values, _eqs) ->
@@ -1405,7 +1486,7 @@ module Constructor = struct
     | _ -> .
 
   let destruct constructors x =
-    destruct_choice constructors Start Start constructors x
+    destruct_choice constructors BinaryStart BinaryStart constructors x
 end
 
 module Variant = struct

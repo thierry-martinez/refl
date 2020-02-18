@@ -2,4 +2,4 @@
   (name refl)
   (public_name refl)
   (preprocess (pps refl.ppx))
-  (libraries refl.common))
+  (libraries refl.common metapp.utils))

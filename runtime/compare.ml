@@ -105,12 +105,12 @@ fun desc_a desc_b poly comparers ->
       fun x y ->
       let Destruct x = Constructor.destruct a.constructors (a.destruct x) in
       let Destruct y = Constructor.destruct b.constructors (b.destruct y) in
-      begin match compare_selection x.index_desc y.index_desc with
+      begin match compare_binary_selection x.index_desc y.index_desc with
       | LessThan -> -1
       | GreaterThan -> 1
       | Equal Eq ->
           let Eq =
-            selection_functional_head x.index_desc y.index_desc in
+            binary_selection_functional_head x.index_desc y.index_desc in
           match x.link, y.link with
           | Exists xl, Exists yl ->
               let Absent = xl.presence in
@@ -185,7 +185,8 @@ fun desc_a desc_b poly comparers ->
       compare_gen a.desc b.desc poly comparers
   | RecArity a, RecArity b ->
       compare_gen a.desc b.desc poly comparers
-  | Opaque _, Opaque _ ->
+  | Opaque _, Opaque _
+  | MapOpaque, MapOpaque ->
       fun _ _ -> 0
   | SelectGADT a, SelectGADT b ->
       compare_gen a.desc b.desc begin match poly with

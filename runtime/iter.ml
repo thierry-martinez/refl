@@ -90,7 +90,8 @@ fun desc iters x ->
       iter desc iters x
   | RecArity { desc } ->
       iter desc iters x
-  | Opaque _ -> ()
+  | Opaque _
+  | MapOpaque -> ()
   | SelectGADT { desc; _ } ->
       iter desc iters x
   | SubGADT { desc; _ } ->

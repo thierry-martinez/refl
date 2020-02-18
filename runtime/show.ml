@@ -276,7 +276,7 @@ fun desc printers fmt x ->
       pp desc printers fmt x
   | RecArity { desc } ->
       pp desc printers fmt x
-  | Opaque _ ->
+  | Opaque _ | MapOpaque ->
       Format.pp_print_string fmt "<opaque>"
   | SelectGADT { desc; _ } ->
       pp desc printers fmt x

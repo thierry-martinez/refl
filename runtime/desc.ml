@@ -19,10 +19,27 @@ type ('index, 'items, 'value, 'tail) selection =
       ('index, 'sequence, _, 'head * 'tail) selection ->
         ([`Succ of 'index], 'sequence, 'head, 'tail) selection
 
+type ('index, 'items, 'value, 'tail) binary_selection =
+  | BinaryStart :
+      ([`Start], 'sequence, _, 'sequence) binary_selection
+  | Zero :
+      ('index, 'sequence, _, 'zero * 'one) binary_selection ->
+        ([`Zero of 'index], 'sequence, _, 'zero) binary_selection
+  | One :
+      ('index, 'sequence, _, 'zero * 'one) binary_selection ->
+        ([`One of 'index], 'sequence, _, 'one) binary_selection
+  | Select :
+      ('index, 'sequence, _, 'contents ref) binary_selection ->
+        ([`Select of 'index], 'sequence, 'contents, unit) binary_selection
+
 type 'cases choice =
   | CFirst : 'types -> ('types * _) choice
   | CNext : 'cases choice -> (_ * 'cases) choice
 
+type 'cases binary_choice =
+  | CEnd : 'types -> 'types ref binary_choice
+  | CZero : 'cases binary_choice -> ('cases * _) binary_choice
+  | COne : 'cases binary_choice -> (_ * 'cases) binary_choice
 
 module type UnaryType = sig
   type 'a t
@@ -112,7 +129,7 @@ module Kinds = struct
 
   type comparable =
       [builtin | structural | `Variable | `Lazy | `Opaque | `GADT | `Exists
-    | `Absent | `Attributes ]
+    | `Absent | `Attributes | `MapOpaque ]
 
   type arrow = [`Arrow | `Labelled_arrow]
 
@@ -165,10 +182,10 @@ type
           desc
   | Constr : {
         constructors :
-          ((_ * _) as 'cases, 'structures, 'arity, 'rec_arity, 'kinds,
+          ('cases, 'structures, 'arity, 'rec_arity, 'kinds,
             'positive, 'negative, 'direct, 'gadt) constructors;
-        construct : 'cases choice -> 'a;
-        destruct : 'a -> 'cases choice;
+        construct : 'cases binary_choice -> 'a;
+        destruct : 'a -> 'cases binary_choice;
       } ->
         ('a, [`Constr of 'structures], 'arity, 'rec_arity,
           [> `Constr] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
@@ -236,6 +253,9 @@ type
       } ->
         ('a, [`Opaque of 'structure * 'direct], 'arity,
           'rec_arity, [> `Opaque], 'positive, 'negative, _, 'gadt) desc
+  | MapOpaque :
+        ('a, [`MapOpaque of 'a], 'arity,
+          'rec_arity, [> `MapOpaque], 'positive, 'negative, _, 'gadt) desc
   | Rec : {
         index :
           ([`Succ of 'index], 'rec_arity, 'length * 'structure, _) selection;
@@ -284,19 +304,20 @@ type
 
 and ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
       'direct, 'gadt) constructors =
-  | CNil :
-      (unit, unit, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
-        'gadt) constructors
-  | CCons : {
-        head :
-          ('types_and_eqs, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
-            'negative, 'direct, 'gadt) constructor;
-        tail :
-          ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+  | CLeaf :
+      ('types_and_eqs, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+         'negative, 'direct, 'gadt) constructor ->
+      ('types_and_eqs ref, 'structure ref, 'arity, 'rec_arity, 'kinds,
+         'positive, 'negative, 'direct, 'gadt) constructors
+  | CNode : {
+        zero :
+          ('cases0, 'structures0, 'arity, 'rec_arity, 'kinds, 'positive,
+            'negative, 'direct, 'gadt) constructors;
+        one :
+          ('cases1, 'structures1, 'arity, 'rec_arity, 'kinds, 'positive,
             'negative, 'direct, 'gadt) constructors;
       } ->
-        ('types_and_eqs * 'cases, 'structure * 'structures, 'arity,
-          'rec_arity,
+        ('cases0 * 'cases1, 'structures0 * 'structures1, 'arity, 'rec_arity,
           'kinds, 'positive, 'negative, 'direct, 'gadt) constructors
 
 and ('types_and_eqs, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,

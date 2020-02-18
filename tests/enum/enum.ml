@@ -8,7 +8,7 @@ let () =
   assert (Refl.max [%refl: insn] = 5)
 
 let () =
-  assert (Refl.to_int [%refl: insn] Push = 3)
+  assert (Refl.to_int_opt [%refl: insn] Push = Some 3)
 
 let () =
   assert (Refl.of_int_opt [%refl: insn] 5 = Some Add)

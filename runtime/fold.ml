@@ -100,7 +100,8 @@ fun desc folds x acc ->
       fold desc folds x acc
   | RecArity { desc } ->
       fold desc folds x acc
-  | Opaque _ -> acc
+  | Opaque _
+  | MapOpaque -> acc
   | SelectGADT { desc; _ } ->
       fold desc folds x acc  | SubGADT { desc; _ } ->
       fold desc folds x acc

@@ -1,0 +1,4 @@
+(test
+  (name many_constructors)
+  (preprocess (pps refl.ppx))
+  (libraries refl))

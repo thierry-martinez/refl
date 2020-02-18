@@ -1,3 +1,4 @@
+(*
 type 'a t =
   | [] : [`Zero] t
 
@@ -45,6 +46,7 @@ let t_refl :
       destruct;
     }
 let _ = t_refl
+*)
 
 type ('a, 'b) u =
   | [] : ([`Zero], 'b) u
@@ -78,6 +80,7 @@ let () =
 type 'a v =
   | A : 'a * 'b -> ('a * 'b) v
 
+(*
 type ('present, 'unknown) v__variable_positive0 = 'present
 type ('present, 'unknown) v__variable_negative0 = 'unknown
 type ('present, 'unknown) v__variable_direct0 = 'present
@@ -191,7 +194,7 @@ end;
       construct;
       destruct;
     }
-
+*)
 type 'a w =
   | A : 'a * 'b -> ('a * 'b) w
         [@@deriving refl]

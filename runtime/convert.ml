@@ -254,25 +254,21 @@ fun a_struct b_struct converters eq_gadt x ->
       negative_a, direct_a, gadt_a) constructors ->
     (b_cases, structures_b, arity_b, rec_arity_b, kinds_b, positive_b,
       negative_b, direct_b, gadt_b) constructors ->
-    a_cases choice -> b_cases choice =
+    a_cases binary_choice -> b_cases binary_choice =
   fun a_constructors b_constructors a_choice ->
     match a_constructors, b_constructors, a_choice with
-    | CCons { tail = a_constructors; _ },
-      CCons { tail = b_constructors; _ },
-      CNext a_choice ->
-        CNext (convert_constructor a_constructors b_constructors a_choice)
-    | CCons { head = Constructor a; _ },
-      CCons { head = Constructor b; _ },
-      CFirst (values, eqs) ->
+    | CNode a, CNode b, CZero a_choice ->
+        CZero (convert_constructor a.zero b.zero a_choice)
+    | CNode a, CNode b, COne a_choice ->
+        COne (convert_constructor a.one b.one a_choice)
+    | CLeaf (Constructor a), CLeaf (Constructor b), CEnd (values, eqs) ->
         begin match eq_gadt with
         | None -> raise Incompatible
         | Some Eq ->
             let eqs = convert_eqs a.eqs b.eqs eqs in
-            CFirst (convert_kind a.kind b.kind converters (Some Eq) values, eqs)
+            CEnd (convert_kind a.kind b.kind converters (Some Eq) values, eqs)
         end
-    | CCons { head = Exists a; _ },
-      CCons { head = Exists b; _ },
-      CFirst values ->
+    | CLeaf (Exists a), CLeaf (Exists b), CEnd values ->
         begin match eq_gadt with
         | None -> raise Incompatible
         | Some Eq ->
@@ -291,7 +287,7 @@ fun a_struct b_struct converters eq_gadt x ->
                 let values =
                   convert_kind a'.kind b'.kind converters (Some Eq) a'.values |>
                   b'.construct in
-                CFirst values
+                CEnd values
             end
         end
     | _ -> raise Incompatible in
