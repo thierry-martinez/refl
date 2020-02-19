@@ -1,4 +1,4 @@
-# Efficient and type-safe type reflection for OCaml
+# refl: Efficient and type-safe type reflection for OCaml
 
 `refl` provides runtime representations for most OCaml types, and a
 "one size fits all" deriving plugin.
