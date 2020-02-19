@@ -18,6 +18,18 @@ then this type can be used with all functions operating on such
 runtime representations, even functions that are defined after the
 type declaration.
 
+`refl` can be used with [`dune`] by using the [`preprocess`] field.
+
+[`dune`]: https://github.com/ocaml/dune
+[`preprocess`]: https://dune.readthedocs.io/en/latest/concepts.html#preprocessing-with-ppx-rewriters
+
+```lisp
+(executable
+  ...
+  (preprocess (pps refl.ppx))
+  (libraries ... refl ...))
+```
+
 # Basic usage
 
 The following example declares a type for binary trees along with its
