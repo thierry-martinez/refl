@@ -128,6 +128,8 @@ fun desc printers fmt x ->
         to_list_aux desc value printers acc
     | SubGADT { desc; _ } ->
         to_list_aux desc value printers acc
+    | Name { desc; _ } ->
+        to_list_aux desc value printers acc
     | _ ->
         None in
 
@@ -234,7 +236,7 @@ fun desc printers fmt x ->
   | Variant { constructors; destruct; _ } ->
       let Destruct destruct = Variant.destruct constructors (destruct x) in
       begin match destruct.kind with
-      | Constructor { name; argument }->
+      | Constructor { name; argument } ->
           Format.pp_open_box fmt 0;
           Format.pp_print_string fmt "`";
           Format.pp_print_string fmt name;
@@ -296,6 +298,8 @@ fun desc printers fmt x ->
           | None ->
               pp desc printers fmt x
       end
+  | Name { desc; _ } ->
+      pp desc printers fmt x
   | _ -> .
 
 let show desc printers x =

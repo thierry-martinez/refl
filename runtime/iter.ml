@@ -98,4 +98,6 @@ fun desc iters x ->
       iter desc iters x
   | Attributes { desc; _ } ->
       iter desc iters x
+  | Name { desc; _ } ->
+      iter desc iters x
   | _ -> .

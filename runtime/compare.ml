@@ -218,6 +218,8 @@ fun desc_a desc_b poly comparers ->
       | _, _, Poly ->
           invalid_arg "Cannot use custom compare for polymorphic comparisons"
       end
+  | Name a, Name b ->
+      compare_gen a.desc b.desc poly comparers
   | _ -> .
 
 let compare_poly desc_a desc_b comparers =

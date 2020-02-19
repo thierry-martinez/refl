@@ -1,5 +1,4 @@
 (test
   (name irregular)
   (preprocess (pps refl.ppx))
-  (libraries refl)
-  (flags -dsource))
+  (libraries refl))

@@ -115,4 +115,6 @@ fun a_struct b_struct mapping x ->
       map a.desc b.desc mapping x
   | Attributes a, Attributes b ->
       map a.desc b.desc mapping x
+  | Name a, Name b ->
+      map a.desc b.desc mapping x
   | _ -> .

@@ -2,6 +2,6 @@
   (name ppx_refl)
   (public_name refl.ppx)
   (kind ppx_rewriter)
-  (preprocess (pps metaquot))
+  (preprocess (pps metaquot.ppx))
   (flags -open Stdcompat)
-  (libraries compiler-libs metapp.utils stdcompat fix refl.common))
+  (libraries compiler-libs metapp stdcompat fix refl.common))

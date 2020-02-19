@@ -429,6 +429,10 @@ fun a_struct b_struct converters eq_gadt x ->
             let Eq = sub_gadt_functional a.sub_gadt b.sub_gadt in
             Some Eq
       end x
+  | Name a, _ ->
+      convert a.desc b_struct converters eq_gadt x
+  | _, Name b ->
+      convert a_struct b.desc converters eq_gadt x
   | _ -> raise Incompatible
 
 and transfer :

@@ -124,19 +124,27 @@ module Kinds = struct
       [`Bool | `Bytes | `Char | `Float | `Int | `Int32 | `Int64 | `Nativeint |
         `String | `Unit]
 
-  type structural =
-      [`Array | `Constr | `Object | `Tuple | `Record | `Variant]
+  type structural_without_object =
+      [`Array | `Constr | `Tuple | `Record | `Variant | `Attributes | `Name]
 
-  type comparable =
-      [builtin | structural | `Variable | `Lazy | `Opaque | `GADT | `Exists
-    | `Absent | `Attributes | `MapOpaque ]
+  type structural = [structural_without_object | `Object]
+
+  type strictly_liftable =
+      [builtin | structural_without_object | `Variable | `Lazy | `GADT
+      | `Exists | `Absent ]
+
+  type comparable = [strictly_liftable | `Object | `Opaque | `MapOpaque ]
 
   type arrow = [`Arrow | `Labelled_arrow]
 
-  type all = [comparable | `Present | arrow ]
+  type liftable = [comparable | arrow ]
+
+  type all = [liftable | `Present]
 end
 
 type ('a, 'arity, 'attribute) typed_attribute_kind = ..
+
+type 'a type_name = ..
 
 type
   ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
@@ -301,6 +309,14 @@ type
       } ->
         ('a, [`Attributes of 'structure], 'arity, 'rec_arity,
           [> `Attributes] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
+  | Name : {
+        name : 'a type_name;
+        desc :
+          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+            'negative, 'direct, 'sub_gadt) desc;
+      } ->
+        ('a, [`Name of 'structure], 'arity, 'rec_arity, 'kinds, 'positive,
+         'negative, 'direct, 'sub_gadt) desc
 
 and ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
       'direct, 'gadt) constructors =

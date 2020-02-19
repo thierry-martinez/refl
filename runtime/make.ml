@@ -44,11 +44,13 @@ fun structures fields ->
 
 let make :
   type a structures new_rec_arity .
-  (a, [`RecArity of [`Record of structures] * new_rec_arity], 'arity,
+  (a, [`Name of [`RecArity of [`Record of structures] * new_rec_arity]], 'arity,
     'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
   ('arity, new_rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt)
     field StringMap.t ->
   a =
 fun desc fields ->
-  let RecArity { desc = Record { structure; construct; _ }; _ } = desc in
+  let Name { desc = RecArity { desc =
+      Record { structure; construct; _ }; _ }; _ } =
+    desc in
   construct (make_fields structure fields)

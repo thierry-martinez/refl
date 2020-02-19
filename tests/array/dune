@@ -1,5 +1,4 @@
 (test
   (name array)
   (preprocess (pps refl.ppx))
-  (libraries refl)
-  (flags -dsource))
+  (libraries refl))

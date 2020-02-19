@@ -166,6 +166,8 @@ fun desc_a desc_b equalers ->
       equal_poly a.desc b.desc equalers
   | Attributes a, Attributes b ->
       equal_poly a.desc b.desc equalers
+  | Name a, Name b ->
+      equal_poly a.desc b.desc equalers
   | _ -> .
 
 let equal desc equalers =

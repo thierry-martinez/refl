@@ -107,5 +107,7 @@ fun desc folds x acc ->
       fold desc folds x acc
   | Attributes { desc; _ } ->
       fold desc folds x acc
+  | Name { desc; _ } ->
+      fold desc folds x acc
   | _ -> . in
   fold desc (Vector.to_unary folds) x acc
