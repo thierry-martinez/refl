@@ -4,4 +4,4 @@
   (kind ppx_rewriter)
   (preprocess (pps metaquot.ppx))
   (flags -open Stdcompat)
-  (libraries compiler-libs metapp stdcompat fix refl.common))
+  (libraries compiler-libs metapp stdcompat fix))

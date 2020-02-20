@@ -1,3 +1,0 @@
-(library
-  (name refl_common)
-  (public_name refl.common))

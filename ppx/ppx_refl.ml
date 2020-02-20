@@ -1,5 +1,3 @@
-open Refl_common
-
 open Common
 
 (*
@@ -907,10 +905,9 @@ let subst_free_variables
 exception Exists of Location.t * string option
 
 let subst_type_vars_opt map _loc name =
-  let open Monad.Option in
-  let* name = name in
-  let* index = StringMap.find_opt name map in
-  return (Ast_helper.Typ.var (type_arg index))
+  Option.bind name @@ fun name ->
+  Option.bind (StringMap.find_opt name map) @@ fun index ->
+  Some (Ast_helper.Typ.var (type_arg index))
 
 let subst_type_vars map loc name =
   match subst_type_vars_opt map loc name with
@@ -1116,18 +1113,17 @@ let extract_gadt_equalities context
         Location.raise_errorf ~loc:!Ast_helper.default_loc
 "Type constructor '%s' has %d parameters but %d arguments given"
           context.name arity arg_count;
-      let add_eq (eqs, vars) arg = vars |>
-        let open Monad.State in
+      let add_eq (eqs, vars) arg =
         match var_of_core_type_opt arg with
         | Some None ->
-            let* _ = StringIndexer.fresh in
-            return eqs
+            let (_, vars) = StringIndexer.fresh vars in
+            (eqs, vars)
         | Some (Some var) when not (StringIndexer.mem var vars) ->
-            let* _ = StringIndexer.force_add var in
-            return eqs
+            let (_, vars) = StringIndexer.force_add var vars in
+            (eqs, vars)
         | _ ->
-            let* index = StringIndexer.fresh in
-            return ((index, arg) :: eqs) in
+            let (index, vars) = StringIndexer.fresh vars in
+            ((index, arg) :: eqs, vars) in
       let eqs, vars =
         List.fold_left add_eq ([], StringIndexer.empty) args in
       let eqs =
@@ -1360,6 +1356,16 @@ let tuple_of_types types =
   | [ty] -> ty
   | _ -> Ast_helper.Typ.tuple types
 
+let rec fold_map_aux f list acc_list accu =
+  match list with
+  | [] -> (List.rev acc_list, accu)
+  | head :: tail ->
+      let (value, accu) = f head accu in
+      fold_map_aux f tail (value :: acc_list) accu
+
+let fold_map f list accu =
+  fold_map_aux f list [] accu
+
 let structure_of_exists single_constructor ctor_count i context
     (constructor : Parsetree.constructor_declaration)
     (result : Parsetree.core_type)
@@ -1371,54 +1377,51 @@ let structure_of_exists single_constructor ctor_count i context
     match result with
     | { ptyp_desc = Ptyp_constr (_, args); _ } -> args
     | _ -> assert false in
-  let add_arg (parameters, vars) arg = vars |>
-    let open Monad.State in
+  let add_arg (parameters, vars) arg =
     match var_of_core_type_opt arg with
     | Some None ->
-        let* _ = StringIndexer.fresh in
-        return parameters
+        let (_, vars) = StringIndexer.fresh vars in
+        (parameters, vars)
     | Some (Some var) ->
         begin match StringIndexer.find_opt var vars with
         | None ->
-            let* _ = StringIndexer.force_add var in
-            return parameters
+            let (_, vars) = StringIndexer.force_add var vars in
+            (parameters, vars)
         | Some index' ->
-            let* index = StringIndexer.fresh in
-            return ((index, arg) :: (index', arg) :: parameters)
+            let (index, vars) = StringIndexer.fresh vars in
+            ((index, arg) :: (index', arg) :: parameters, vars)
           end
     | _ ->
-        let* index = StringIndexer.fresh in
-        return ((index, arg) :: parameters) in
+        let (index, vars) = StringIndexer.fresh vars in
+        ((index, arg) :: parameters, vars) in
   let (parameters, vars) =
     List.fold_left add_arg ([], StringIndexer.empty) result_args in
-  let check_free_variable _loc var indexer = indexer |>
-    let open Monad.State in
-    let* var =
+  let check_free_variable _loc var indexer =
+    let (var, indexer) =
       match var with
       | None ->
           let var =
             Printf.sprintf "free_var__%d" (StringIndexer.count indexer) in
-          let* _ = StringIndexer.force_add var in
-          return var
+          let (_, indexer) = StringIndexer.force_add var indexer in
+          (var, indexer)
       | Some var ->
           if StringIndexer.mem var vars then
-            return var
+            (var, indexer)
           else
-            let* _ = StringIndexer.add var in
-            return var in
-    return (Ast_helper.Typ.var var) in
+            let (_, indexer) = StringIndexer.add var indexer in
+            (var, indexer) in
+    (Ast_helper.Typ.var var, indexer) in
   let args = args_of_constructor constructor in
-  let (parameters, renamed_args), free_variables = StringIndexer.empty |>
-    let open Monad.State in
-    let* parameters =
-      parameters |> map begin fun (index, arg) ->
-        let* arg = fold_map_free_variables check_free_variable arg in
-        return (index, arg)
-      end in
-    let* renamed_args =
-      args |>
-      map (fold_map_free_variables check_free_variable) in
-    return (parameters, renamed_args) in
+  let (parameters, renamed_args), free_variables =
+    let (parameters, indexer) =
+      fold_map begin fun (index, arg) indexer ->
+        let (arg, indexer) =
+          fold_map_free_variables check_free_variable arg indexer in
+        ((index, arg), indexer)
+      end parameters StringIndexer.empty in
+    let (renamed_args, indexer) =
+      fold_map (fold_map_free_variables check_free_variable) args indexer in
+    ((parameters, renamed_args), indexer) in
   let vars = vars |> StringIndexer.union free_variables in
   let branch_name =
     Printf.sprintf "%s_%s" context.name constructor.pcd_name.txt in
