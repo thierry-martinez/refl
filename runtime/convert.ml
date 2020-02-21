@@ -124,7 +124,8 @@ fun count converters ->
         converters =
           match converters with
           | SameArity Eq -> SameArity Eq
-          | Converters converters -> Converters ((Fun.id, Fun.id) :: converters)
+          | Converters converters ->
+              Converters ((Stdcompat.Fun.id, Stdcompat.Fun.id) :: converters)
       }
 
 let rec convert :
@@ -331,6 +332,7 @@ fun a_struct b_struct converters eq_gadt x ->
       negative_b, direct_b, gadt_b) object_methods ->
     a_types Delays.t -> b_types Delays.t =
   fun methods_a methods_b a ->
+    let open Delays in
     match methods_a, methods_b, a with
     | ONil, ONil, [] -> []
     | OCons a, OCons b, head :: tail ->

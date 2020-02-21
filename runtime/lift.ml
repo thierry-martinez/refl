@@ -49,33 +49,37 @@ module Make (Target : Metapp.ValueS) = struct
     | Array desc ->
         Target.array (Array.to_list (Array.map (lift ?hook desc lifters) x))
     | Constr { constructors; destruct; _ } ->
-        let Destruct destruct =
+        let Constructor.Destruct destruct =
           Constructor.destruct constructors (destruct x) in
         let lifters' =
           match destruct.link with
-          | Exists { presence = Absent; exists_count; exists; variables; _ } ->
+          | Constructor.Exists
+              { presence = Absent; exists_count; exists; variables; _ } ->
               lifters |>
               Lifters.append None
                 variables.presences variables.direct_count variables.direct
                 exists_count exists
-          | Constructor -> lifters in
+          | Constructor.Constructor -> lifters in
         let arg =
+          let open Tuple in
           match destruct.kind with
-          | Tuple { structure = []; _ } -> None
-          | Tuple tuple -> Some (lift_tuple lifters' tuple)
-          | Record record -> Some (lift_record lifters' record) in
+          | Constructor.Tuple { structure = []; _ } -> None
+          | Constructor.Tuple tuple -> Some (lift_tuple lifters' tuple)
+          | Constructor.Record record -> Some (lift_record lifters' record) in
         Target.force_construct
           (Metapp.mkloc (Longident.Lident destruct.name)) arg
     | Variant { constructors; destruct; _ } ->
-        let Destruct destruct = Variant.destruct constructors (destruct x) in
+        let Variant.Destruct destruct =
+          Variant.destruct constructors (destruct x) in
         begin match destruct.kind with
-        | Constructor { name; argument } ->
+        | Variant.Constructor { name; argument } ->
             let arg =
               match argument with
-              | None -> None
-              | Some { desc; value } -> Some (lift ?hook desc lifters value) in
+              | Variant.None -> None
+              | Variant.Some { desc; value } ->
+                  Some (lift ?hook desc lifters value) in
             Target.variant name arg
-        | Inherit { desc; value } ->
+        | Variant.Inherit { desc; value } ->
             lift ?hook desc lifters value
         end
     | Tuple { structure; destruct; _ } ->
@@ -106,9 +110,13 @@ module Make (Target : Metapp.ValueS) = struct
           | None -> lift ?hook desc lifters x
           | Some { hook = f } -> f name (lift ?hook desc lifters) x
         end
-    | Opaque _ | MapOpaque ->
+    | Opaque _ ->
         Target.extension (Metapp.mkloc "opaque", PStr [])
-    | Arrow _ | LabelledArrow _ ->
+    | MapOpaque ->
+        Target.extension (Metapp.mkloc "opaque", PStr [])
+    | Arrow _ ->
+        Target.extension (Metapp.mkloc "arrow", PStr [])
+    | LabelledArrow _ ->
         Target.extension (Metapp.mkloc "arrow", PStr [])
     | Object _ ->
         Target.extension (Metapp.mkloc "object", PStr [])

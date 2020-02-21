@@ -98,16 +98,15 @@ module Kinds = struct
       if TransferSet.is_empty exists then
         []
       else
-        [Ast_helper.Rf.mk
-          (Rinherit
-           (Transfer.to_type
-             (TransferSet.fold Transfer.compose exists Absent)))] in
+        [Metapp.Rf.inherit_
+          (Transfer.to_type
+            (TransferSet.fold Transfer.compose exists Absent))] in
     let add_direct_kind txt accu =
-      Ast_helper.Rf.mk (Rtag ({ loc; txt }, false, [])) :: accu in
+      Metapp.Rf.tag { loc; txt } false [] :: accu in
     let row_fields = StringSet.fold add_direct_kind direct row_fields in
     let add_inherited_kind txt accu =
-      Ast_helper.Rf.mk
-        (Rinherit (Ast_helper.Typ.constr { loc; txt } [])) :: accu in
+      Metapp.Rf.inherit_
+        (Ast_helper.Typ.constr { loc; txt } []) :: accu in
     let row_fields =
       LongidentSet.fold add_inherited_kind inherited row_fields in
     assert (row_fields <> []);

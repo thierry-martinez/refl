@@ -598,9 +598,9 @@ let expr_of_string s =
 let structure_of_row_field structure_of_type context
     (row_field : Parsetree.row_field)
     : Parsetree.core_type * Parsetree.expression =
-  Ast_helper.with_default_loc row_field.prf_loc @@ fun () ->
-  match row_field with
-  | { prf_desc = Rtag (label, _, args); _ } ->
+  Ast_helper.with_default_loc (Metapp.Rf.to_loc row_field) @@ fun () ->
+  match Metapp.Rf.destruct row_field with
+  | Rtag (label, _, args) ->
       let structure, desc =
         match args with
         | [] -> [%type: unit], [%expr VNone]
@@ -611,7 +611,7 @@ let structure_of_row_field structure_of_type context
       [%expr Refl.VConstructor {
         name = [%e expr_of_string label.txt];
         argument = [%e desc]}]
-  | { prf_desc = Rinherit ty; _ } ->
+  | Rinherit ty ->
       let structure, desc = structure_of_type context ty in
       [%type: [`Inherit of [%t structure]]],
       [%expr Refl.VInherit [%e desc]]
@@ -620,18 +620,17 @@ let accessors_of_row_field (ty : Parsetree.core_type Lazy.t) i
     (row_field : Parsetree.row_field)
     : Parsetree.case * Parsetree.case =
   let arg = "arg" in
-  Ast_helper.with_default_loc row_field.prf_loc @@ fun () ->
+  Ast_helper.with_default_loc (Metapp.Rf.to_loc row_field) @@ fun () ->
   let module Values (Value : Metapp.ValueS) = struct
     include ReflValue (Value)
     let sequence, variant =
-      match row_field with
-      | { prf_desc = Rtag (label, _, []); _ } ->
+      match Metapp.Rf.destruct row_field with
+      | Rtag (label, _, []) ->
           sequence_of_list [], variant label.txt None
-      | { prf_desc = Rtag (label, _, _); _ } ->
+      | Rtag (label, _, _) ->
           let ident = var arg in
           sequence_of_list [ident], variant label.txt (Some ident)
-      | { prf_desc =
-            Rinherit { ptyp_desc = Ptyp_constr (type_name, _); _ }; _ } ->
+      | Rinherit { ptyp_desc = Ptyp_constr (type_name, _); _ } ->
           let pat () =
             Ast_helper.Pat.alias
               (Ast_helper.Pat.type_ type_name) (Metapp.mkloc arg) in
@@ -656,14 +655,14 @@ let structure_of_variant structure_of_type context
   let types, descs = List.split cases in
   let ty = lazy begin
     let fields = fields |> List.map begin fun (field : Parsetree.row_field) ->
-      match field with
-      | { prf_desc = Rtag (label, _, list); _ } ->
+      match Metapp.Rf.destruct field with
+      | Rtag (label, _, list) ->
           let list =
             match list with
             | [] -> []
             | _ :: _ -> [[%type: _]] in
-          { field with prf_desc = Rtag (label, false, list)}
-      | { prf_desc = Rinherit t; _ } -> { field with prf_desc = Rinherit t }
+          Metapp.Rf.tag label false list
+      | Rinherit _ -> field
     end in
     Ast_helper.Typ.variant fields Closed None
   end in
@@ -809,12 +808,13 @@ let structure_of_arrow structure_of_type context (label : Asttypes.arg_label)
   end
 
 let structure_of_object_field structure_of_type context
-    (object_field : Parsetree.object_field)
+    (object_field : Metapp.Of.t)
     : (Parsetree.core_type * Parsetree.expression) *
     ((Parsetree.pattern * Parsetree.class_field) * Parsetree.expression) =
-  Ast_helper.with_default_loc object_field.pof_loc @@ fun () ->
-  match object_field with
-  | { pof_desc = Otag (label, argument); _ } ->
+  let loc = Metapp.Of.to_loc object_field in
+  Ast_helper.with_default_loc loc @@ fun () ->
+  match Metapp.Of.destruct object_field with
+  | Otag (label, argument) ->
       let structure, desc = structure_of_type context argument in
       let structure =
         [%type: [`Method of [%t structure]]],
@@ -826,16 +826,15 @@ let structure_of_object_field structure_of_type context
           Ast_helper.Cf.method_ label Public
            (Ast_helper.Cf.concrete Fresh [%expr
              [%e Ast_helper.Exp.ident (Metapp.lid_of_str label)] ()])),
-          [%expr fun () -> [%e Ast_helper.Exp.send [%expr c] label]]) in
+          [%expr fun () -> [%e Metapp.Exp.send [%expr c] label]]) in
       structure, construct
-  | { pof_desc = Oinherit _; _ } ->
-      Location.raise_errorf ~loc:object_field.pof_loc
+  | Oinherit _ ->
+      Location.raise_errorf ~loc
         "ppx_refl does not support object inheritance"
 
 let delays_dot = refl_dot "Delays"
 
-let structure_of_object structure_of_type context
-    (fields : Parsetree.object_field list)
+let structure_of_object structure_of_type context (fields : Metapp.Of.t list)
     : Parsetree.core_type * Parsetree.expression =
   let methods =
     List.map (structure_of_object_field structure_of_type context) fields in
@@ -932,13 +931,13 @@ let instantiate _loc var =
 let make_attributes context ty attributes : Parsetree.expression =
   let cases =
     attributes |> List.map begin fun (attribute : Parsetree.attribute) ->
-      let name = lid_of_attr_name attribute.attr_name.txt in
+      let name = lid_of_attr_name (Metapp.Attr.name attribute).txt in
       let name : Longident.t =
         match name with
         | Ldot (Lident "Ocaml", attr) ->
             Ldot (Ldot (Lident "Refl", "Ocaml_attributes"), attr)
         | _ -> name in
-      let expr = Metapp.Exp.of_payload attribute.attr_payload in
+      let expr = Metapp.Exp.of_payload (Metapp.Attr.payload attribute) in
       Ast_helper.Exp.case (Metapp.Pat.construct name [])
         [%expr Some [%e expr]]
     end in
@@ -952,7 +951,7 @@ let make_attributes context ty attributes : Parsetree.expression =
     List.map Metapp.mkloc
       ("attribute" :: StringSet.elements !accu) in
   [%expr
-     { Refl.typed = [%e List.fold_right Ast_helper.Exp.newtype forall_types
+     { Refl.typed = [%e List.fold_right Metapp.Exp.newtype forall_types
           (Ast_helper.Exp.constraint_
              (Ast_helper.Exp.function_ cases)
              [%type:
@@ -1033,8 +1032,7 @@ let rec structure_of_type context (ty : Parsetree.core_type)
     | { ptyp_desc = Ptyp_poly (vars, ty); _ } ->
         let context = { context with vars = context.vars |>
           StringIndexer.union (StringIndexer.of_list
-            (vars |>
-              List.map (fun (var : _ Location.loc) -> Some var.txt)))} in
+            (vars |> List.map (fun var -> Some (Metapp.Typ.poly_name var))))} in
         structure_of_type context ty
     | _ ->
         Location.raise_errorf ~loc:!Ast_helper.default_loc "Unsupported type" in
@@ -1211,7 +1209,7 @@ let structure_of_label_declaration context prefix single_label
         Metapp.mutate (Constraints.add_direct_kind "Poly");
       let free_variables =
         StringIndexer.of_list
-          (List.map (fun (v : _ Location.loc) -> Some v.txt) vars) in
+          (List.map (fun v -> Some (Metapp.Typ.poly_name v)) vars) in
       let vars = context.vars |> StringIndexer.union free_variables in
       let context' =
         { context with vars; constraints = ref Constraints.bottom } in
@@ -1561,7 +1559,7 @@ let structure_of_exists single_constructor ctor_count i context
                   [Ast_helper.Exp.case decomposed.pat composed.exp]];}]] in
        let destruct =
          [%e List.fold_right
-            (fun txt e -> Ast_helper.Exp.newtype (Metapp.mkloc txt) e)
+            (fun txt e -> Metapp.Exp.newtype (Metapp.mkloc txt) e)
             context.type_args [%expr (fun
               ([%p composed.pat] : [%t value_type]) :
               ([%t count], [%t parameter_type_tuple],
@@ -1921,11 +1919,11 @@ let module_of_type_structure rec_arity constraints i type_structure
       desc_type) in
   let type_loc = List.map Metapp.mkloc context.type_args in
   let desc =
-    List.fold_right Ast_helper.Exp.newtype type_loc unwrapped_desc in
+    List.fold_right Metapp.Exp.newtype type_loc unwrapped_desc in
   let desc_def =
     Ast_helper.Vb.mk
       [%pat? ([%p Metapp.Pat.var desc_name] :
-        [%t Ast_helper.Typ.poly type_loc desc_type])]
+        [%t Metapp.Typ.poly type_loc desc_type])]
       desc
       ~attrs:[Metapp.Attr.mk (Metapp.mkloc "ocaml.warning")
         (PStr [%str "-34"])] in
@@ -2071,7 +2069,7 @@ let expr (mapper : Ast_mapper.mapper) (e : Parsetree.expression)
   let e = Ast_mapper.default_mapper.expr mapper e in
   match e.pexp_desc with
   | Pexp_extension ({ txt; _ }, payload) when String.equal txt deriver_name ->
-      extension (Metapp.core_type_of_payload payload)
+      extension (Metapp.Typ.of_payload payload)
   | _ -> e
 
 let get_derivers (attributes : Parsetree.attributes)
@@ -2079,9 +2077,7 @@ let get_derivers (attributes : Parsetree.attributes)
   match Metapp.Attr.find "deriving" attributes with
   | None -> []
   | Some derivers ->
-      let derivers =
-        Metapp.expression_of_payload
-          (Metapp.Attr.payload derivers) in
+      let derivers = Metapp.Exp.of_payload (Metapp.Attr.payload derivers) in
       match derivers.pexp_desc with
       | Pexp_tuple derivers -> derivers
       | _ -> [derivers]

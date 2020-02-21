@@ -28,9 +28,10 @@ fun desc_a desc_b equalers ->
     positive, negative, direct, gadt_b) Tuple.t ->
   bool =
   fun equalers x y ->
+    let open Tuple.Items in
     match
       Tuple.find [x; y]
-        begin fun (Find { items = [x; y]; _ }) ->
+        begin fun (Tuple.Find { items = [x; y]; _ }) ->
           if equal_poly x.desc y.desc equalers x.value y.value then
             None
           else
@@ -49,9 +50,10 @@ fun desc_a desc_b equalers ->
     positive, negative, direct, gadt_b) Record.t ->
   bool =
   fun equalers x y ->
+    let open Record.Fields in
     match
       Record.find [x; y]
-        begin fun (Find {items = [x; y]; _ }) ->
+        begin fun (Record.Find {items = [x; y]; _ }) ->
           match x.field, y.field with
           | Mono x', Mono y' ->
               if equal_poly x'.desc y'.desc equalers x.value y.value then
@@ -85,15 +87,17 @@ fun desc_a desc_b equalers ->
       check 0
   | Constr a, Constr b ->
       fun x y ->
-      let Destruct x = Constructor.destruct a.constructors (a.destruct x) in
-      let Destruct y = Constructor.destruct b.constructors (b.destruct y) in
+      let Constructor.Destruct x =
+        Constructor.destruct a.constructors (a.destruct x) in
+      let Constructor.Destruct y =
+        Constructor.destruct b.constructors (b.destruct y) in
       begin match compare_binary_selection x.index_desc y.index_desc with
       | LessThan | GreaterThan -> false
       | Equal Eq ->
           let Eq =
             binary_selection_functional_head x.index_desc y.index_desc in
           match x.link, y.link with
-          | Exists xl, Exists yl ->
+          | Constructor.Exists xl, Constructor.Exists yl ->
               let Absent = xl.presence in
               let Eq =
                 append_functional xl.variables.positive yl.variables.positive in
@@ -106,13 +110,17 @@ fun desc_a desc_b equalers ->
                   xl.variables.direct_count xl.variables.direct xl.exists_count
                   xl.exists yl.exists_count yl.exists equalers in
               begin match x.kind, y.kind with
-              | Tuple x, Tuple y -> equal_tuple equalers x y
-              | Record x, Record y -> equal_record equalers x y
+              | Constructor.Tuple x, Constructor.Tuple y ->
+                  equal_tuple equalers x y
+              | Constructor.Record x, Constructor.Record y ->
+                  equal_record equalers x y
               end
-          | Constructor, Constructor ->
+          | Constructor.Constructor, Constructor.Constructor ->
               match x.kind, y.kind with
-              | Tuple x, Tuple y -> equal_tuple equalers x y
-              | Record x, Record y -> equal_record equalers x y
+              | Constructor.Tuple x, Constructor.Tuple y ->
+                  equal_tuple equalers x y
+              | Constructor.Record x, Constructor.Record y ->
+                  equal_record equalers x y
       end
   | Object _, Object _ ->
       fun x y -> Oo.id x = Oo.id y
@@ -128,20 +136,20 @@ fun desc_a desc_b equalers ->
           { structure = b.structure; values = b.destruct y }
   | Variant a, Variant b ->
       fun x y ->
-      let Destruct x = Variant.destruct a.constructors (a.destruct x) in
-      let Destruct y = Variant.destruct b.constructors (b.destruct y) in
+      let Variant.Destruct x = Variant.destruct a.constructors (a.destruct x) in
+      let Variant.Destruct y = Variant.destruct b.constructors (b.destruct y) in
       begin match compare_selection x.index_desc y.index_desc with
       | LessThan | GreaterThan -> false
       | Equal Eq ->
           let Eq =
             selection_functional_head x.index_desc y.index_desc in
           match x.kind, y.kind with
-          | Constructor { argument = None; _ },
-            Constructor { argument = None; _ } -> true
-          | Constructor { argument = Some x; _ },
-            Constructor { argument = Some y; _ } ->
+          | Variant.Constructor { argument = Variant.None; _ },
+            Variant.Constructor { argument = Variant.None; _ } -> true
+          | Variant.Constructor { argument = Variant.Some x; _ },
+            Variant.Constructor { argument = Variant.Some y; _ } ->
               equal_poly x.desc y.desc equalers x.value y.value
-          | Inherit x, Inherit y ->
+          | Variant.Inherit x, Variant.Inherit y ->
               equal_poly x.desc y.desc equalers x.value y.value
       end
   | Lazy desc_a, Lazy desc_b ->
@@ -157,7 +165,8 @@ fun desc_a desc_b equalers ->
       equal_poly a.desc b.desc equalers
   | RecArity a, RecArity b ->
       equal_poly a.desc b.desc equalers
-  | Opaque _, Opaque _
+  | Opaque _, Opaque _ ->
+      fun _ _ -> true
   | MapOpaque, MapOpaque ->
       fun _ _ -> true
   | SelectGADT a, SelectGADT b ->

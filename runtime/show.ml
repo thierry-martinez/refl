@@ -96,22 +96,25 @@ fun desc printers fmt x ->
   fun desc value printers acc ->
     match desc with
     | Constr { constructors; destruct; _ } ->
-        let Destruct destruct =
+        let Constructor.Destruct destruct =
           Constructor.destruct constructors (destruct value) in
         let printers =
           match destruct.link with
-          | Exists { exists_count; exists; variables; _ } ->
+          | Constructor.Exists { exists_count; exists; variables; _ } ->
               printers |>
               Printers.append
                 (Some { item = fun fmt _ ->
                   Format.pp_print_string fmt "<poly>" })
                 variables.presences variables.direct_count variables.direct
                 exists_count exists
-          | Constructor -> printers in
+          | Constructor.Constructor -> printers in
+        let open Tuple in
         begin match destruct.name, destruct.kind, destruct.values with
-        | "[]", Tuple { structure = []; _ }, _ -> Some (List.rev acc)
+        | "[]", Constructor.Tuple { structure = []; _ }, _ ->
+            Some (List.rev acc)
         | "::",
-          Tuple { structure = [desc; tail_desc]; _ }, (value, (tail, ())) ->
+          Constructor.Tuple { structure = [desc; tail_desc]; _ },
+          (value, (tail, ())) ->
             to_list_aux tail_desc tail printers
               (Value { desc; value; printers } :: acc)
         | _ -> None
@@ -165,7 +168,9 @@ fun desc printers fmt x ->
       Format.pp_print_string fmt "\"";
       Format.pp_print_string fmt (String.escaped x);
       Format.pp_print_string fmt "\""
-  | Arrow _ | LabelledArrow _ ->
+  | Arrow _ ->
+      Format.pp_print_string fmt "<fun>"
+  | LabelledArrow _ ->
       Format.pp_print_string fmt "<fun>"
   | Array desc ->
       Format.pp_open_box fmt 2;
@@ -182,19 +187,20 @@ fun desc printers fmt x ->
       Format.pp_print_string fmt "|]";
       Format.pp_close_box fmt ()
   | Constr { constructors; destruct; _ } ->
-      let Destruct destruct =
+      let Constructor.Destruct destruct =
         Constructor.destruct constructors (destruct x) in
       let printers' =
         match destruct.link with
-        | Exists { exists_count; exists; variables; _ } ->
+        | Constructor.Exists { exists_count; exists; variables; _ } ->
             printers |>
             Printers.append
               (Some { item = fun fmt _ -> Format.pp_print_string fmt "<poly>" })
               variables.presences variables.direct_count variables.direct
               exists_count exists
-        | Constructor -> printers in
+        | Constructor.Constructor -> printers in
+      let open Tuple in
       begin match destruct.name, destruct.kind with
-      | "::", Tuple { structure = [head_desc; tail_desc]; _ } ->
+      | "::", Constructor.Tuple { structure = [head_desc; tail_desc]; _ } ->
           begin match to_list desc x printers with
           | Some list ->
               Format.pp_open_box fmt 1;
@@ -223,33 +229,34 @@ fun desc printers fmt x ->
           Format.pp_open_box fmt 0;
           Format.pp_print_string fmt destruct.name;
           begin match destruct.kind with
-          | Tuple { structure = []; _ } -> ()
-          | Tuple tuple ->
+          | Constructor.Tuple { structure = []; _ } -> ()
+          | Constructor.Tuple tuple ->
               Format.pp_print_space fmt ();
               pp_tuple printers' tuple
-          | Record record ->
+          | Constructor.Record record ->
               Format.pp_print_space fmt ();
               pp_record printers' record
           end;
           Format.pp_close_box fmt ();
       end
   | Variant { constructors; destruct; _ } ->
-      let Destruct destruct = Variant.destruct constructors (destruct x) in
+      let Variant.Destruct destruct =
+        Variant.destruct constructors (destruct x) in
       begin match destruct.kind with
-      | Constructor { name; argument } ->
+      | Variant.Constructor { name; argument } ->
           Format.pp_open_box fmt 0;
           Format.pp_print_string fmt "`";
           Format.pp_print_string fmt name;
           begin match argument with
-          | None -> ()
-          | Some { desc; value } ->
+          | Variant.None -> ()
+          | Variant.Some { desc; value } ->
               Format.pp_print_space fmt ();
               Format.pp_print_string fmt "(";
               pp desc printers fmt value;
               Format.pp_print_string fmt ")";
           end;
           Format.pp_close_box fmt ()
-      | Inherit { desc; value } ->
+      | Variant.Inherit { desc; value } ->
           pp desc printers fmt value
       end
   | Object _ ->
@@ -278,7 +285,9 @@ fun desc printers fmt x ->
       pp desc printers fmt x
   | RecArity { desc } ->
       pp desc printers fmt x
-  | Opaque _ | MapOpaque ->
+  | Opaque _ ->
+      Format.pp_print_string fmt "<opaque>"
+  | MapOpaque ->
       Format.pp_print_string fmt "<opaque>"
   | SelectGADT { desc; _ } ->
       pp desc printers fmt x

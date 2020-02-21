@@ -32,7 +32,7 @@ fun a_struct b_struct mapping x ->
     let initial = mapping
     let grow mapping :
         ('a_arity, 'b_arity, 'positive, 'negative) Mappers.t =
-      Mappers.PN (Fun.id, Fun.id) :: mapping
+      Mappers.PN (Stdcompat.Fun.id, Stdcompat.Fun.id) :: mapping
     let map mapping desc_a desc_b x =
       map desc_a desc_b mapping x
   end in

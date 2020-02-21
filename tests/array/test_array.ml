@@ -5,17 +5,17 @@ let () =
 
 let () =
   assert
-    (Refl.compare [%refl: _ array] [Some Stdlib.compare]
+    (Refl.compare [%refl: _ array] [Some Stdcompat.compare]
        [|1; 2; 4|] [|1; 2; 3|] = 1)
 
 let () =
   assert
-    (Refl.compare [%refl: _ array] [Some Stdlib.compare]
+    (Refl.compare [%refl: _ array] [Some Stdcompat.compare]
        [|1; 2; 2|] [|1; 2; 3|] = -1)
 
 let () =
   assert
-    (Refl.compare [%refl: _ array] [Some Stdlib.compare]
+    (Refl.compare [%refl: _ array] [Some Stdcompat.compare]
        [|1; 2; 3|] [|1; 2; 3|] = 0)
 
 let () =

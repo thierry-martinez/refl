@@ -1,4 +1,5 @@
 (test
   (name make)
   (preprocess (pps refl.ppx))
-  (libraries refl))
+  (flags -open Stdcompat)
+  (libraries refl stdcompat))

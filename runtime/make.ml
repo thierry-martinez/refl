@@ -1,6 +1,6 @@
 open Desc
 
-module StringMap = Stdlib.Map.Make (String)
+module StringMap = Stdcompat.Map.Make (String)
 
 type ('a, 'arity, 'b) typed_attribute_kind +=
   | Attribute_default : ('a, 'arity, 'a) typed_attribute_kind

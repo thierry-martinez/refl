@@ -47,37 +47,40 @@ fun desc folds x acc ->
   match desc with
   | Variable index ->
       Vector.get index folds x acc
-  | Builtin _ | Arrow _ | LabelledArrow _ -> acc
+  | Builtin _ -> acc
+  | Arrow _ -> acc
+  | LabelledArrow _ -> acc
   | Array desc ->
       Array.fold_left (fun acc x -> fold desc folds x acc) acc x
   | Constr { constructors; destruct; _ } ->
-      let Destruct destruct =
+      let Constructor.Destruct destruct =
         Constructor.destruct constructors (destruct x) in
       let folds' =
         match destruct.link with
-        | Exists { exists_count; exists; variables; _ } ->
+        | Constructor.Exists { exists_count; exists; variables; _ } ->
             folds |>
             Vector.append
               (Some { item = fun _ acc -> acc })
               variables.presences variables.direct_count variables.direct
               exists_count exists
-        | Constructor -> folds in
+        | Constructor.Constructor -> folds in
       begin match destruct.kind with
-      | Tuple tuple ->
+      | Constructor.Tuple tuple ->
           fold_tuple folds' tuple acc
-      | Record record ->
+      | Constructor.Record record ->
           fold_record folds' record acc
       end
   | Variant { constructors; destruct; _ } ->
-      let Destruct destruct = Variant.destruct constructors (destruct x) in
+      let Variant.Destruct destruct =
+        Variant.destruct constructors (destruct x) in
       begin match destruct.kind with
-      | Constructor { argument; _ }->
+      | Variant.Constructor { argument; _ }->
           begin match argument with
-          | None -> acc
-          | Some { desc; value } ->
+          | Variant.None -> acc
+          | Variant.Some { desc; value } ->
               fold desc folds value acc
           end
-      | Inherit { desc; value } ->
+      | Variant.Inherit { desc; value } ->
           fold desc folds value acc
       end
   | Object { methods; destruct; _ } ->
@@ -100,7 +103,7 @@ fun desc folds x acc ->
       fold desc folds x acc
   | RecArity { desc } ->
       fold desc folds x acc
-  | Opaque _
+  | Opaque _ -> acc
   | MapOpaque -> acc
   | SelectGADT { desc; _ } ->
       fold desc folds x acc  | SubGADT { desc; _ } ->

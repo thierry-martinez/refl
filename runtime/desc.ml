@@ -57,12 +57,6 @@ end
 
 module Delays = Sequence (Delay)
 
-module Comparer = struct
-  type 'a t = 'a -> 'a -> int
-end
-
-module Comparers = Sequence (Comparer)
-
 type ('index, 'arity, 'a, 'positive, 'direct) variable =
   | VFirst :
       ([`Zero], 'value * _, 'value, [`Present] * _, [`Present] * _) variable
@@ -144,7 +138,58 @@ end
 
 type ('a, 'arity, 'attribute) typed_attribute_kind = ..
 
-type 'a type_name = ..
+type _ type_name = ..
+
+(*
+type _ variable = A
+
+type _ builtin = B
+
+type _ labelled = C
+
+type _ constr = D
+
+type _ variant = E
+
+type _ tuple = F
+
+type _ record = G
+
+type _ object_ = H
+
+type (_, _, _, _, _, _) apply = I
+
+type (_, _) opaque = J
+
+type _ mapopaque = K
+
+type _ rec_ = L
+
+type (_, _) rec_arity = M
+
+type (_, _) select_gadt = N
+
+type _ sub_gadt = O
+
+type _ attributes = P
+
+type _ name = Q
+
+type (_, _, _, _, _, _, _) exists = R
+
+type _ mono = S
+
+type (_, _, _, _, _) poly = T
+
+type _ constr = U
+
+type _ inherit_ = V
+
+type _ method_ = W
+
+type _ 
+*)
+
 
 type
   ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,

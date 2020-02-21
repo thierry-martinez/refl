@@ -40,9 +40,10 @@ fun desc_a desc_b poly comparers ->
   (arity_a, arity_b, direct) Comparers.t ->
   int =
   fun x y poly comparers ->
+    let open Tuple.Items in
     match
       Tuple.find [x; y]
-        begin fun (Find { items = [x; y]; _ }) ->
+        begin fun (Tuple.Find { items = [x; y]; _ }) ->
           match compare_gen x.desc y.desc poly comparers x.value y.value with
           | 0 -> None
           | result -> Some result
@@ -61,9 +62,10 @@ fun desc_a desc_b poly comparers ->
   (arity_a, arity_b, direct) Comparers.t ->
   int =
   fun x y poly comparers ->
+    let open Record.Fields in
     match
       Record.find [x; y]
-        begin fun (Find { items = [x; y]; _ }) ->
+        begin fun (Record.Find { items = [x; y]; _ }) ->
           match x.field, y.field with
           | Mono x', Mono y' ->
               match
@@ -77,18 +79,18 @@ fun desc_a desc_b poly comparers ->
   match desc_a, desc_b with
   | Variable index_a, Variable index_b ->
       Comparers.get index_a index_b comparers
-  | Builtin Bool, Builtin Bool -> Stdlib.compare
-  | Builtin Bytes, Builtin Bytes -> Stdlib.compare
-  | Builtin Char, Builtin Char -> Stdlib.compare
-  | Builtin Float, Builtin Float -> Stdlib.compare
-  | Builtin Int, Builtin Int -> Stdlib.compare
-  | Builtin Int32, Builtin Int32 -> Stdlib.compare
-  | Builtin Int64, Builtin Int64 -> Stdlib.compare
-  | Builtin Nativeint, Builtin Nativeint -> Stdlib.compare
-  | Builtin String, Builtin String -> Stdlib.compare
+  | Builtin Bool, Builtin Bool-> Stdcompat.compare
+  | Builtin Bytes, Builtin Bytes -> Stdcompat.compare
+  | Builtin Char, Builtin Char -> Stdcompat.compare
+  | Builtin Float, Builtin Float -> Stdcompat.compare
+  | Builtin Int, Builtin Int -> Stdcompat.compare
+  | Builtin Int32, Builtin Int32 -> Stdcompat.compare
+  | Builtin Int64, Builtin Int64 -> Stdcompat.compare
+  | Builtin Nativeint, Builtin Nativeint -> Stdcompat.compare
+  | Builtin String, Builtin String -> Stdcompat.compare
   | Array desc_a, Array desc_b ->
       fun x y ->
-      begin match Stdlib.compare (Array.length x) (Array.length y) with
+      begin match Stdcompat.compare (Array.length x) (Array.length y) with
       | 0 ->
         let rec check i =
           if i >= Array.length x then
@@ -103,8 +105,10 @@ fun desc_a desc_b poly comparers ->
       end
   | Constr a, Constr b ->
       fun x y ->
-      let Destruct x = Constructor.destruct a.constructors (a.destruct x) in
-      let Destruct y = Constructor.destruct b.constructors (b.destruct y) in
+      let Constructor.Destruct x =
+        Constructor.destruct a.constructors (a.destruct x) in
+      let Constructor.Destruct y =
+        Constructor.destruct b.constructors (b.destruct y) in
       begin match compare_binary_selection x.index_desc y.index_desc with
       | LessThan -> -1
       | GreaterThan -> 1
@@ -112,7 +116,7 @@ fun desc_a desc_b poly comparers ->
           let Eq =
             binary_selection_functional_head x.index_desc y.index_desc in
           match x.link, y.link with
-          | Exists xl, Exists yl ->
+          | Constructor.Exists xl, Constructor.Exists yl ->
               let Absent = xl.presence in
               let Eq =
                 append_functional xl.variables.positive yl.variables.positive in
@@ -125,16 +129,20 @@ fun desc_a desc_b poly comparers ->
                   xl.variables.direct_count xl.variables.direct xl.exists_count
                   xl.exists yl.exists_count yl.exists comparers in
               begin match x.kind, y.kind with
-              | Tuple x, Tuple y -> compare_tuple x y Poly comparers
-              | Record x, Record y -> compare_record x y Poly comparers
+              | Constructor.Tuple x, Constructor.Tuple y ->
+                  compare_tuple x y Poly comparers
+              | Constructor.Record x, Constructor.Record y ->
+                  compare_record x y Poly comparers
               end
-          | Constructor, Constructor ->
+          | Constructor.Constructor, Constructor.Constructor ->
               match x.kind, y.kind with
-              | Tuple x, Tuple y -> compare_tuple x y poly comparers
-              | Record x, Record y -> compare_record x y poly comparers
+              | Constructor.Tuple x, Constructor.Tuple y ->
+                  compare_tuple x y poly comparers
+              | Constructor.Record x, Constructor.Record y ->
+                  compare_record x y poly comparers
       end
   | Object _, Object _ ->
-      fun x y -> Stdlib.compare (Oo.id x) (Oo.id y)
+      fun x y -> Stdcompat.compare (Oo.id x) (Oo.id y)
   | Tuple a, Tuple b ->
       fun x y ->
         compare_tuple
@@ -149,8 +157,8 @@ fun desc_a desc_b poly comparers ->
           poly comparers
   | Variant a, Variant b ->
       fun x y ->
-      let Destruct x = Variant.destruct a.constructors (a.destruct x) in
-      let Destruct y = Variant.destruct b.constructors (b.destruct y) in
+      let Variant.Destruct x = Variant.destruct a.constructors (a.destruct x) in
+      let Variant.Destruct y = Variant.destruct b.constructors (b.destruct y) in
       begin match compare_selection x.index_desc y.index_desc with
       | LessThan -> -1
       | GreaterThan -> 1
@@ -158,12 +166,12 @@ fun desc_a desc_b poly comparers ->
           let Eq =
             selection_functional_head x.index_desc y.index_desc in
           match x.kind, y.kind with
-          | Constructor { argument = None; _ },
-            Constructor { argument = None; _ } -> 0
-          | Constructor { argument = Some x; _ },
-            Constructor { argument = Some y; _ } ->
+          | Variant.Constructor { argument = Variant.None; _ },
+            Variant.Constructor { argument = Variant.None; _ } -> 0
+          | Variant.Constructor { argument = Variant.Some x; _ },
+            Variant.Constructor { argument = Variant.Some y; _ } ->
               compare_gen x.desc y.desc poly comparers x.value y.value
-          | Inherit x, Inherit y ->
+          | Variant.Inherit x, Variant.Inherit y ->
               compare_gen x.desc y.desc poly comparers x.value y.value
       end
   | Lazy desc_a, Lazy desc_b ->
@@ -185,7 +193,8 @@ fun desc_a desc_b poly comparers ->
       compare_gen a.desc b.desc poly comparers
   | RecArity a, RecArity b ->
       compare_gen a.desc b.desc poly comparers
-  | Opaque _, Opaque _
+  | Opaque _, Opaque _ ->
+      fun _ _ -> 0
   | MapOpaque, MapOpaque ->
       fun _ _ -> 0
   | SelectGADT a, SelectGADT b ->

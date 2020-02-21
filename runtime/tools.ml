@@ -136,11 +136,11 @@ fun selection selection' ->
       | Equal Eq -> Equal Eq
       | GreaterThan -> GreaterThan
       end
-  | BinaryStart, _
-  | Zero _, One _
+  | BinaryStart, _ -> LessThan
+  | Zero _, One _ -> LessThan
   | _, Select _ -> LessThan
-  | _, BinaryStart
-  | One _, Zero _
+  | _, BinaryStart -> GreaterThan
+  | One _, Zero _ -> GreaterThan
   | Select _, _ -> GreaterThan
 
 let rec binary_selection_functional_tail :
@@ -479,7 +479,8 @@ module SignedVector (T : BinaryType) = struct
 
   let pos : type negative .
         ('a, 'b, [`Present], negative) item -> ('a, 'b) T.t = function
-    | P p | PN (p, _) -> p
+    | P p -> p
+    | PN (p, _) -> p
 
   let rec get :
     type index a b a_value b_value positive negative direct .
@@ -952,10 +953,15 @@ module Tuple = struct
           'rec_arity, 'kinds, 'positive, 'negative, 'direct, gadts)
             structure_find =
     fun index section tuples ->
-      match section, tuples with
-      | [], [] ->
+      let open Section in
+      match section with
+      | [] ->
+          let open Tuples in
+          let [] = tuples in
           Structure_find { section = []; items = []; others = [] }
-      | head_section :: tail_section, head :: tail ->
+      | head_section :: tail_section ->
+          let open Tuples in
+          let head :: tail = tuples in
           let Structure_find tail =
             make_section index tail_section tail in
           let desc :: structure = head.structure in
@@ -973,7 +979,9 @@ module Tuple = struct
           'positive, 'negative, 'direct, gadts) Tuples.t ->
         'a option =
     fun index section tuples ->
+      let open Tuples in
       let first :: tail = tuples in
+      let open Section in
       let head_section :: tail_section = section in
       match first with
       | { structure = []; values = () } -> None
@@ -999,12 +1007,13 @@ module Tuple = struct
           'negative, 'direct, gadts) Tuples.t ->
         ([`Zero], subtuples, subtuples) Section.some =
     fun tuples ->
+      let open Tuples in
       match tuples with
-      | [] -> Some []
+      | [] -> Section.Some []
       | _head :: tail ->
-          let Some tail = start_section tail in
+          let Section.Some tail = start_section tail in
           Some (Start :: tail) in
-    let Some section = start_section tuples in
+    let Section.Some section = start_section tuples in
     aux Start section tuples
 end
 
@@ -1074,7 +1083,7 @@ module Record = struct
         let MakeAppend arity_a = make_append count in
         let ForallDestruct { desc = desc_a; destruct } =
           destruct_a.forall_destruct count arity_a in
-        let MakeVariables { mapper; subarity_a; subarity_b } =
+        let Tools.MakeVariables { mapper; subarity_a; subarity_b } =
           Tools.make_variables count variables_a mapper in
         let Eq = append_functional arity_a subarity_a in
         let Eq = append_functional arity_b subarity_b in
@@ -1204,10 +1213,15 @@ module Record = struct
           'rec_arity, 'kinds, 'positive, 'negative, 'direct, gadts)
             structure_find =
     fun index section records ->
-      match section, records with
-      | [], [] ->
+      let open Section in
+      match section with
+      | [] ->
+          let open Records in
+          let [] = records in
           Structure_find { section = []; items = []; others = [] }
-      | head_section :: tail_section, head :: tail ->
+      | head_section :: tail_section ->
+          let open Records in
+          let head :: tail = records in
           let Structure_find tail =
             make_section index tail_section tail in
           let RCons { head = field; tail = structure } = head.structure in
@@ -1225,7 +1239,9 @@ module Record = struct
           'positive, 'negative, 'direct, gadts) Records.t ->
         'a option =
     fun index section records ->
+      let open Records in
       let first :: tail = records in
+      let open Section in
       let head_section :: tail_section = section in
       match first with
       | { structure = RNil; values = () } -> None
@@ -1251,12 +1267,13 @@ module Record = struct
           'negative, 'direct, gadts) Records.t ->
         ([`Zero], subrecords, subrecords) Section.some =
     fun records ->
+      let open Records in
       match records with
       | [] -> Some []
       | _head :: tail ->
-          let Some tail = start_section tail in
-          Some (Start :: tail) in
-    let Some section = start_section records in
+          let Section.Some tail = start_section tail in
+          Section.Some (Start :: tail) in
+    let Section.Some section = start_section records in
     aux Start section records
 end
 
@@ -1356,7 +1373,7 @@ module Constructor = struct
         CEnd values ->
           let Eq = selection_functional_head a.selection b.selection in
           let ExistsDestruct a' = a.destruct values in
-          let MakeVariables { mapper; subarity_a; subarity_b } =
+          let Tools.MakeVariables { mapper; subarity_a; subarity_b } =
             Tools.make_variables a'.exists_count a.variables M.initial in
           let Eq =
             append_functional a'.exists subarity_a in
@@ -1634,6 +1651,7 @@ module Object = struct
       'negative, 'direct, 'gadt) object_methods ->
     methods_a Delays.t -> methods_b Delays.t =
   fun f methods_a methods_b a ->
+    let open Delays in
     match methods_a, methods_b, a with
     | ONil, ONil, [] -> []
     | OCons { head = OMethod head_a; tail = tail_a },
@@ -1673,6 +1691,7 @@ module Object = struct
         'negative, 'direct, 'gadt) object_methods ->
       subtypes Delays.t -> 'a -> 'a =
     fun index index_structure structure values acc ->
+      let open Delays in
       match structure, values with
       | ONil, [] -> acc
       | OCons { head = OMethod s_head; tail = s_tail }, head :: tail ->
@@ -1747,13 +1766,19 @@ module Object = struct
           'rec_arity, 'kinds, 'positive, 'negative, 'direct, gadts)
             structure_find =
     fun index section tuples ->
-      match section, tuples with
-      | [], [] ->
+      let open Section in
+      match section with
+      | [] ->
+          let open Objects in
+          let [] = tuples in
           Structure_find { section = []; methods = []; others = [] }
-      | head_section :: tail_section, head :: tail ->
+      | head_section :: tail_section ->
+          let open Objects in
+          let head :: tail = tuples in
           let Structure_find tail =
             make_section index tail_section tail in
           let OCons { head = method_; tail = structure } = head.structure in
+          let open Delays in
           let value :: methods = head.methods in
           Structure_find {
             section = Next head_section :: tail.section;
@@ -1768,8 +1793,11 @@ module Object = struct
           'positive, 'negative, 'direct, gadts) Objects.t ->
         'a option =
     fun index section objects ->
+      let open Objects in
       let first :: tail = objects in
+      let open Section in
       let head_section :: tail_section = section in
+      let open Delays in
       match first with
       | { structure = ONil; methods = [] } -> None
       | { structure = OCons { head = structure; tail = structure_tail };
@@ -1797,11 +1825,12 @@ module Object = struct
           'negative, 'direct, gadts) Objects.t ->
         ([`Zero], subtuples, subtuples) Section.some =
     fun tuples ->
+      let open Objects in
       match tuples with
       | [] -> Some []
       | _head :: tail ->
-          let Some tail = start_section tail in
+          let Section.Some tail = start_section tail in
           Some (Start :: tail) in
-    let Some section = start_section tuples in
+    let Section.Some section = start_section tuples in
     aux Start section tuples
 end

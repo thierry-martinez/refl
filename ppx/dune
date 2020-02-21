@@ -3,5 +3,8 @@
   (public_name refl.ppx)
   (kind ppx_rewriter)
   (preprocess (pps metaquot.ppx))
-  (flags -open Stdcompat)
+; +warning 32: Unused value declaration.
+; +warning 34: Unused type declaration.
+; -warning 40: Constructor or label name used out of scope. (OCaml <=4.06.0)
+  (flags -open Stdcompat -w +32+34-40)
   (libraries compiler-libs metapp stdcompat fix))

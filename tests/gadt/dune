@@ -1,4 +1,6 @@
 (test
   (name gadt)
   (preprocess (pps refl.ppx))
-  (libraries refl))
+  ; -warning 40: Constructor or label name used out of scope. (OCaml <=4.06.0)
+  (flags -open Stdcompat -w -40)
+  (libraries refl stdcompat))

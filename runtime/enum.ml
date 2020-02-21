@@ -44,7 +44,7 @@ fun constructors ->
 let constructor_assoc_with_default_values constructors =
   let assoc = constructor_assoc constructors in
   let put_default_value (default, accu) (choice, value) =
-    let value = Option.value ~default value in
+    let value = Stdcompat.Option.value ~default value in
     (succ value, (choice, value) :: accu) in
   let (_default_value, accu) =
     List.fold_left put_default_value (0, []) assoc in
@@ -97,8 +97,9 @@ fun desc value ->
   match desc with
   | Name { desc = RecArity { desc =
       Constr { constructors; destruct; _ }; _ }; _ } ->
-      Option.map snd (List.find_opt (check_choice (destruct value))
-        (constructor_assoc_with_default_values constructors))
+      Stdcompat.Option.map snd
+        (Stdcompat.List.find_opt (check_choice (destruct value))
+          (constructor_assoc_with_default_values constructors))
 
 let of_int_opt :
   type a .
@@ -109,8 +110,8 @@ fun desc value ->
   match desc with
   | Name { desc = RecArity { desc =
       Constr { construct; constructors; _ }; _ }; _ } ->
-      Option.map (fun item -> construct (fst item))
-        (List.find_opt (check_value value)
+      Stdcompat.Option.map (fun item -> construct (fst item))
+        (Stdcompat.List.find_opt (check_value value)
            (constructor_assoc_with_default_values constructors))
 
 let to_string :
@@ -122,7 +123,7 @@ fun desc value ->
   match desc with
   | Name { desc = RecArity { desc =
       Constr { constructors; destruct; _ }; _ }; _ } ->
-      let Destruct destruct =
+      let Constructor.Destruct destruct =
         Constructor.destruct constructors (destruct value) in
       destruct.name
 
@@ -136,8 +137,8 @@ fun constructors value ->
   match constructors with
   | CNode { zero; one } ->
       begin match of_string_aux zero value with
-      | None -> Option.map (fun c -> COne c) (of_string_aux one value)
-      | some -> Option.map (fun c -> CZero c) some
+      | None -> Stdcompat.Option.map (fun c -> COne c) (of_string_aux one value)
+      | some -> Stdcompat.Option.map (fun c -> CZero c) some
       end
   | CLeaf (Constructor c) when c.name = value ->
       begin match c.kind, c.eqs with

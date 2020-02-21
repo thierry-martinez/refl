@@ -21,25 +21,25 @@ let unit_refl :
           kind = CTuple TNil;
           eqs = ENil;
           attributes = Tools.attributes_empty; });
-    construct = (fun (CEnd ((), ())) -> ());
+    construct = (fun (Refl.CEnd ((), ())) -> ());
     destruct = (fun () -> CEnd ((), ()));
   }}
 
-type 'a list = 'a List.t =
+type 'a list = 'a Stdcompat.List.t =
   | []
   | (::) of 'a * 'a list
         [@@deriving refl]
 
-type ('a, 'b) result = ('a, 'b) Stdlib.result =
+type ('a, 'b) result = ('a, 'b) Stdcompat.Stdlib.result =
   | Ok of 'a
   | Error of 'b
         [@@deriving refl]
 
-type 'a option = 'a Option.t =
+type 'a option = 'a Stdcompat.Option.t =
   | None
   | Some of 'a
         [@@deriving refl]
 
-type 'a ref = 'a Stdlib.ref =
+type 'a ref = 'a Stdcompat.Stdlib.ref =
   { mutable contents : 'a }
         [@@deriving refl]

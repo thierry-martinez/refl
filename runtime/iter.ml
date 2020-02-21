@@ -37,37 +37,40 @@ fun desc iters x ->
   match desc with
   | Variable index ->
       Iters.get index iters x
-  | Builtin _ | Arrow _ | LabelledArrow _ -> ()
+  | Builtin _ -> ()
+  | Arrow _ -> ()
+  | LabelledArrow _ -> ()
   | Array desc ->
       Array.iter (iter desc iters) x
   | Constr { constructors; destruct; _ } ->
-      let Destruct destruct =
+      let Constructor.Destruct destruct =
         Constructor.destruct constructors (destruct x) in
       let iters' =
         match destruct.link with
-        | Exists { exists_count; exists; variables; _ } ->
+        | Constructor.Exists { exists_count; exists; variables; _ } ->
             iters |>
             Iters.append
               (Some { item = fun _ -> () })
               variables.presences variables.direct_count variables.direct
               exists_count exists
-        | Constructor -> iters in
+        | Constructor.Constructor -> iters in
       begin match destruct.kind with
-      | Tuple tuple ->
+      | Constructor.Tuple tuple ->
           iter_tuple iters' tuple
-      | Record record ->
+      | Constructor.Record record ->
           iter_record iters' record
       end
   | Variant { constructors; destruct; _ } ->
-      let Destruct destruct = Variant.destruct constructors (destruct x) in
+      let Variant.Destruct destruct =
+        Variant.destruct constructors (destruct x) in
       begin match destruct.kind with
-      | Constructor { argument; _ }->
+      | Variant.Constructor { argument; _ }->
           begin match argument with
-          | None -> ()
-          | Some { desc; value } ->
+          | Variant.None -> ()
+          | Variant.Some { desc; value } ->
               iter desc iters value;
           end
-      | Inherit { desc; value } ->
+      | Variant.Inherit { desc; value } ->
           iter desc iters value
       end
   | Object { methods; destruct; _ } ->
@@ -90,7 +93,7 @@ fun desc iters x ->
       iter desc iters x
   | RecArity { desc } ->
       iter desc iters x
-  | Opaque _
+  | Opaque _ -> ()
   | MapOpaque -> ()
   | SelectGADT { desc; _ } ->
       iter desc iters x
