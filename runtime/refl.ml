@@ -24,6 +24,8 @@ include Make
 
 module Lift = Lift
 
+module Visit = Visit
+
 module Ocaml_attributes = struct
   type ('a, 'arity, 'b) typed_attribute_kind +=
     | Attribute_doc : ('a, 'arity, string) typed_attribute_kind

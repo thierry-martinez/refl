@@ -10,7 +10,7 @@ module Make (Target : Metapp.ValueS) = struct
   module Lifters = Vector (Lifter)
 
   type hook = {
-      hook : 'a . 'a type_name -> 'a Lifter.t -> 'a Lifter.t
+      hook : 'a . 'a refl -> 'a Lifter.t -> 'a Lifter.t
     }
 
   let rec lift :
@@ -104,11 +104,11 @@ module Make (Target : Metapp.ValueS) = struct
         lift ?hook desc lifters x
     | Attributes { desc; _ } ->
         lift ?hook desc lifters x
-    | Name { name; desc } ->
+    | Name { refl; desc; _ } ->
         begin
           match hook with
           | None -> lift ?hook desc lifters x
-          | Some { hook = f } -> f name (lift ?hook desc lifters) x
+          | Some { hook = f } -> f refl (lift ?hook desc lifters) x
         end
     | Opaque _ ->
         Target.extension (Metapp.mkloc "opaque", PStr [])

@@ -1,5 +1,13 @@
 open Desc
 
+module type TypeS = sig
+  type t
+end
+
+module type BinaryTypeS = sig
+  type ('a, 'b) t
+end
+
 let cast : type a b . (a, b) eq -> a -> b = fun Eq x -> x
 
 let eq_symmetric : type a b . (a, b) eq -> (b, a) eq = fun Eq -> Eq
@@ -191,11 +199,64 @@ let attributes_empty = {
   typed = (fun _ -> None);
 }
 
-module type Type = sig
-  type t
+module type VectorS = sig
+  module T : UnaryTypeS
+
+  type ('a, 'occurrence) item =
+    | None : (_, [`Absent]) item
+    | Some : 'a T.t -> ('a, _) item
+
+  type ('sequence, 'occurrences) t =
+    | [] : (unit, unit) t
+    | (::) : ('head, 'occurrence) item * ('tail, 'occurrences) t ->
+        ('head * 'tail, 'occurrence * 'occurrences) t
+
+  val get :
+    ('index, 'sequence, 'value, 'positive, 'occurrences) variable ->
+      ('sequence, 'occurrences) t -> 'value T.t
+
+  val make_transfer :
+    ('source, 'sub, 'arg) transfer_arguments -> ('sequence, 'source) t ->
+    (('sequence, 'arg) t, ('sub, [`Absent]) eq) result
+
+  type ('arity, 'rec_arity, 'kinds) make = {
+      f : 'a 'structure 'ap 'an 'ad 'gadt .
+        ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'ap, 'an, 'ad, 'gadt)
+          desc -> ('arity, 'ad) t -> 'a T.t;
+    }
+
+  val make :
+    ('arity, 'rec_arity, 'kinds) make ->
+    ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'arguments, 'gadt)
+      vector ->
+    ('positive, 'negative, 'direct, 'subpositive, 'subnegative, 'subdirect,
+      'arguments) transfer ->
+    ('arity, 'direct) t ->
+    ('types, 'subdirect) t
+
+  type 'presence any =
+    | None : [`Absent] any
+    | Some : {
+          item : 'a . 'a T.t;
+        } -> _ any
+
+  val append :
+    'presence any ->
+    ('presence, 'directs) presences ->
+    ('count, 'directs) length ->
+    ('directs, 'direct, 'subdirect) append ->
+    ('count, 'types) length ->
+    ('types, 'arity, 'subarity) append  ->
+    ('arity, 'direct) t ->
+    ('subarity, 'subdirect) t
+
+  val to_sequence :
+    [`Present] any -> ('sequence, 'occurrences) t -> 'sequence Sequence(T).t
 end
 
-module Vector (T : UnaryType) = struct
+module Vector (T : UnaryTypeS) : VectorS with module T = T = struct
+  module T = T
+
   type ('a, 'occurrence) item =
     | None : (_, [`Absent]) item
     | Some : 'a T.t -> ('a, _) item
@@ -309,11 +370,7 @@ module Vector (T : UnaryType) = struct
         head :: to_sequence any tail
 end
 
-module type BinaryType = sig
-  type ('a, 'b) t
-end
-
-module BinaryVector (T : BinaryType) = struct
+module BinaryVector (T : BinaryTypeS) = struct
   type ('a, 'b, 'occurrence) item =
     | None : (_, _, [`Absent]) item
     | Some : ('a, 'b) T.t -> ('a, 'b, _) item
@@ -423,7 +480,7 @@ module BinaryVector (T : BinaryType) = struct
         None :: items
 end
 
-module ParameterizedVector (T : BinaryType) = struct
+module ParameterizedVector (T : BinaryTypeS) = struct
   type ('a, 'b, 'occurrence) item =
     | None : (_, _, [`Absent]) item
     | Some : ('a, 'b) T.t -> ('a, 'b, _) item
@@ -433,7 +490,7 @@ module ParameterizedVector (T : BinaryType) = struct
     | (::) : ('head, 'b, 'occurrence) item * ('tail, 'b, 'occurrences) t ->
         ('head * 'tail, 'b, 'occurrence * 'occurrences) t
 
-  module Unary (U : Type) = struct
+  module Unary (U : TypeS) = struct
     module Item = struct
       type 'a t = ('a, U.t) T.t
     end
@@ -454,7 +511,7 @@ module ParameterizedVector (T : BinaryType) = struct
   end
 end
 
-module SignedVector (T : BinaryType) = struct
+module SignedVector (T : BinaryTypeS) = struct
   type ('a, 'b, 'positive, 'negative) item =
     | None :  ('a, 'b, [`Absent], [`Absent]) item
     | P : ('a, 'b) T.t -> ('a, 'b, _, [`Absent]) item

@@ -6,15 +6,15 @@ module Printer = struct
   type 'a t = Format.formatter -> 'a -> unit
 end
 
-module PrinterSequence = Sequence (Printer)
+module Printers = Vector (Printer)
+
+module PrinterSequence = Sequence (Printers.T)
 
 type ('a, 'arity, 'b) typed_attribute_kind +=
   | Attribute_printer : ('a, 'arity, 'a Printer.t) typed_attribute_kind
   | Attribute_polyprinter :
       ('a, 'arity, 'arity PrinterSequence.t -> 'a Printer.t)
       typed_attribute_kind
-
-module Printers = Vector (Printer)
 
 type 'kinds value =
   | Value : {

@@ -41,11 +41,11 @@ type 'cases binary_choice =
   | CZero : 'cases binary_choice -> ('cases * _) binary_choice
   | COne : 'cases binary_choice -> (_ * 'cases) binary_choice
 
-module type UnaryType = sig
+module type UnaryTypeS = sig
   type 'a t
 end
 
-module Sequence (T : UnaryType) = struct
+module Sequence (T : UnaryTypeS) = struct
   type _ t =
     | [] : unit t
     | (::) : 'head T.t * 'tail t -> ('head * 'tail) t
@@ -133,63 +133,16 @@ module Kinds = struct
 
   type liftable = [comparable | arrow ]
 
+  type visitable =
+      [builtin | structural_without_object | `Variable | `GADT
+      | `Opaque | `MapOpaque ]
+
   type all = [liftable | `Present]
 end
 
 type ('a, 'arity, 'attribute) typed_attribute_kind = ..
 
-type _ type_name = ..
-
-(*
-type _ variable = A
-
-type _ builtin = B
-
-type _ labelled = C
-
-type _ constr = D
-
-type _ variant = E
-
-type _ tuple = F
-
-type _ record = G
-
-type _ object_ = H
-
-type (_, _, _, _, _, _) apply = I
-
-type (_, _) opaque = J
-
-type _ mapopaque = K
-
-type _ rec_ = L
-
-type (_, _) rec_arity = M
-
-type (_, _) select_gadt = N
-
-type _ sub_gadt = O
-
-type _ attributes = P
-
-type _ name = Q
-
-type (_, _, _, _, _, _, _) exists = R
-
-type _ mono = S
-
-type (_, _, _, _, _) poly = T
-
-type _ constr = U
-
-type _ inherit_ = V
-
-type _ method_ = W
-
-type _ 
-*)
-
+type _ refl = ..
 
 type
   ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
@@ -355,7 +308,8 @@ type
         ('a, [`Attributes of 'structure], 'arity, 'rec_arity,
           [> `Attributes] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | Name : {
-        name : 'a type_name;
+        name : string;
+        refl : 'a refl;
         desc :
           ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
             'negative, 'direct, 'sub_gadt) desc;

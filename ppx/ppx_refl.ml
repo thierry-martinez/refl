@@ -229,8 +229,8 @@ let kinds_name s =
 let gadt_name s =
   s ^ "__gadt"
 
-let type_name_ctor s =
-  "Name_" ^ s
+let type_refl_ctor s =
+  "Refl_" ^ s
 
 type type_names = {
      refl : string;
@@ -239,7 +239,7 @@ type type_names = {
      arity : string;
      kinds : string;
      gadt : string;
-     name_ctor : string;
+     refl_ctor : string;
    }
 
 let type_names_of_type_name type_name = {
@@ -249,7 +249,7 @@ let type_names_of_type_name type_name = {
      arity = arity_name type_name;
      kinds = kinds_name type_name;
      gadt = gadt_name type_name;
-     name_ctor = type_name_ctor type_name;
+     refl_ctor = type_refl_ctor type_name;
    }
 
 let type_info_of_type_declaration recursive (td : Parsetree.type_declaration) =
@@ -486,11 +486,6 @@ let structure_of_constr structure_of_type context ?rec_type
           index = [%e ReflValueExp.selection_of_int (succ index)];
           desc = [%e ident_of_str (Metapp.mkloc desc_name)]} :
           [%t arrow])]; in
-  let t = [%type: [`Name of [%t t]]] in
-  let desc = [%expr Refl.Name {
-    name =
-      [%e Metapp.Exp.construct (subst_ident type_name_ctor constr) []];
-    desc = [%e desc]; }] in
   if type_args_regular context args then
     begin
       if rec_type = None then
@@ -680,7 +675,7 @@ let structure_of_builtins_or_constr structure_of_type context
     (ty : Parsetree.core_type)
     (constr : Longident.t) (args : Parsetree.core_type list)
     : Parsetree.core_type * Parsetree.expression =
-  match ty with
+  match { ty with ptyp_attributes = [] } with
   | [%type: bool] | [%type: Bool.t] ->
       context.constraints |>
         Metapp.mutate (Constraints.add_direct_kind "Bool");
@@ -962,7 +957,7 @@ let make_attributes context ty attributes : Parsetree.expression =
 let rec structure_of_type context (ty : Parsetree.core_type)
     : Parsetree.core_type * Parsetree.expression =
   Ast_helper.with_default_loc ty.ptyp_loc @@ fun () ->
-  let transform () =
+  let transform ty =
     match ty with
     | [%type: _] ->
         let var = free_variable context in
@@ -1037,11 +1032,12 @@ let rec structure_of_type context (ty : Parsetree.core_type)
     | _ ->
         Location.raise_errorf ~loc:!Ast_helper.default_loc "Unsupported type" in
   let transform_attr (attr : Parsetree.attributes) =
+    let ty = { ty with ptyp_attributes = attr } in
     match attr with
-    | [] -> transform ()
+    | [] -> transform ty
     | _ ->
-        let structure, desc = transform () in
-        let attributes = make_attributes context ty ty.ptyp_attributes in
+        let structure, desc = transform ty in
+        let attributes = make_attributes context ty attr in
         [%type: [`Attributes of [%t structure]]],
         [%expr Refl.Attributes {
           attributes = [%e attributes];
@@ -1733,21 +1729,29 @@ let structure_of_type_declaration context (td : Parsetree.type_declaration)
     : (Parsetree.core_type * Parsetree.expression) *
     (Parsetree.type_declaration list * Parsetree.type_extension list) =
   Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
-  match td.ptype_kind with
-  | Ptype_variant constructors ->
-      structure_of_constr context constructors
-  | Ptype_record labels ->
-      structure_of_record context labels
-  | Ptype_abstract ->
-      begin match td.ptype_manifest with
-      | None ->
-          Location.raise_errorf ~loc:!Ast_helper.default_loc
-            "refl cannot be derived for fully abstract types"
-      | Some ty -> (structure_of_type context ty), ([], [])
-      end
-  | Ptype_open ->
-      Location.raise_errorf ~loc:!Ast_helper.default_loc
-        "refl cannot be derived for open types"
+  let (structure, unwrapped_desc), sides =
+    match td.ptype_kind with
+    | Ptype_variant constructors ->
+        structure_of_constr context constructors
+    | Ptype_record labels ->
+        structure_of_record context labels
+    | Ptype_abstract ->
+        begin match td.ptype_manifest with
+        | None ->
+            Location.raise_errorf ~loc:!Ast_helper.default_loc
+              "refl cannot be derived for fully abstract types"
+        | Some ty -> (structure_of_type context ty), ([], [])
+        end
+    | Ptype_open ->
+        Location.raise_errorf ~loc:!Ast_helper.default_loc
+          "refl cannot be derived for open types" in
+  let structure = [%type: [`Name of [%t structure]]] in
+  let unwrapped_desc = [%expr Refl.Name {
+    refl =
+      [%e Metapp.Exp.construct (Lident (type_refl_ctor td.ptype_name.txt)) []];
+    name = [%e Metapp.Exp.of_string td.ptype_name.txt];
+    desc = [%e unwrapped_desc]; }] in
+  (structure, unwrapped_desc), sides
 
 type type_structure = {
     type_info : type_info;
@@ -1830,12 +1834,12 @@ let type_structure_of_type_info rec_types type_info =
         Constraints.add_exists_kind exists constraints in
   let type_extensions = !type_extensions in
   let type_extensions =
-    Ast_helper.Te.mk (Metapp.mkloc (refl_dot "type_name"))
+    Ast_helper.Te.mk (Metapp.mkloc (refl_dot "refl"))
       ~params:[[%type: _], Invariant]
       [Ast_helper.Te.constructor
-         (Metapp.mkloc context.type_names.name_ctor)
-         (Pext_decl (Pcstr_tuple [], Some
-              [%type: [%t context.type_expr] Refl.type_name]))]
+        (Metapp.mkloc context.type_names.refl_ctor)
+        (Pext_decl (Pcstr_tuple [], Some
+          [%type: [%t context.type_expr] Refl.refl]))]
   :: type_extensions in
   ((declarations @ type_declarations), type_extensions),
   { type_info; context; arity_type; structure; unwrapped_desc; constraints;

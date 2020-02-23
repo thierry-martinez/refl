@@ -42,15 +42,18 @@ fun structures fields ->
             | value -> value in
       head, make_fields tail fields
 
+type ('a, 'b) record_type_structure =
+    [`RecArity of [`Name of [`Record of 'a]] * 'b]
+
 let make :
   type a structures new_rec_arity .
-  (a, [`Name of [`RecArity of [`Record of structures] * new_rec_arity]], 'arity,
+  (a, (structures, new_rec_arity) record_type_structure, 'arity,
     'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
   ('arity, new_rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt)
     field StringMap.t ->
   a =
 fun desc fields ->
-  let Name { desc = RecArity { desc =
+  let RecArity { desc = Name { desc =
       Record { structure; construct; _ }; _ }; _ } =
     desc in
   construct (make_fields structure fields)

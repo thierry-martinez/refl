@@ -7,13 +7,14 @@ type unit__arity = [`Zero]
 
 type unit__rec_arity = (unit__arity * unit__structure) * unit
 
-type _ Refl.type_name += Name_unit : unit Refl.type_name
+type _ Refl.refl += Name_unit : unit Refl.refl
 
 let unit_refl :
     (unit, unit__structure, 'arity, unit__rec_arity, [> `Constr | `Name],
       unit, unit, unit, unit) Refl.desc =
   Name {
-    name = Name_unit;
+    refl = Name_unit;
+    name = "unit";
     desc = Constr {
     constructors = CLeaf (
         Constructor {
