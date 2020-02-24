@@ -26,8 +26,8 @@ module ListTraverse (Applicative : ApplicativeS) = struct
         apply (map List.cons (f hd)) (traverse f tl)
 end
 
-module Iter : ApplicativeS with type _ t = unit = struct
-  type _ t = unit
+module Iter : ApplicativeS with type 'a t = unit = struct
+  type 'a t = unit
 
   let map _f () = ()
 
@@ -55,8 +55,8 @@ module type MonoidS = sig
 end
 
 module Reduce (Monoid : MonoidS)
-  : ApplicativeS with type _ t = Monoid.t = struct
-  type _ t = Monoid.t
+  : ApplicativeS with type 'a t = Monoid.t = struct
+  type 'a t = Monoid.t
 
   let map _f accu =
     accu
@@ -96,10 +96,10 @@ module EnvT (Env : TypeS) (Base : ApplicativeS)
 end
 
 module Env (Env : TypeS)
-  : ApplicativeS with type _ t = Env.t -> unit = EnvT (Env) (Iter)
+  : ApplicativeS with type 'a t = Env.t -> unit = EnvT (Env) (Iter)
 
 module Fold (Accu : TypeS)
-  : ApplicativeS with type _ t = Accu.t -> Accu.t = struct
+  : ApplicativeS with type 'a t = Accu.t -> Accu.t = struct
   type 'a t = Accu.t -> Accu.t
 
   let map f x accu =
