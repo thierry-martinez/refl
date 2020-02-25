@@ -105,10 +105,9 @@ module Make (Target : Metapp.ValueS) = struct
     | Attributes { desc; _ } ->
         lift ?hook desc lifters x
     | Name { refl; desc; _ } ->
-        begin
-          match hook with
-          | None -> lift ?hook desc lifters x
-          | Some { hook = f } -> f refl (lift ?hook desc lifters) x
+        begin match hook with
+        | None -> lift ?hook desc lifters x
+        | Some { hook = f } -> f refl (lift ?hook desc lifters) x
         end
     | Opaque _ ->
         Target.extension (Metapp.mkloc "opaque", PStr [])
