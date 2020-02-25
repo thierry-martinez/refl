@@ -944,15 +944,15 @@ let make_attributes context ty attributes : Parsetree.expression =
   let arity_types = make_arity_types (StringIndexer.count context.vars) in
   let forall_types =
     List.map Metapp.mkloc
-      ("attribute" :: StringSet.elements !accu) in
+      ("__attribute" :: StringSet.elements !accu) in
   [%expr
      { Refl.typed = [%e List.fold_right Metapp.Exp.newtype forall_types
           (Ast_helper.Exp.constraint_
              (Ast_helper.Exp.function_ cases)
              [%type:
-                ([%t ty], [%t arity_types], attribute)
+                ([%t ty], [%t arity_types], __attribute)
                   Refl.typed_attribute_kind ->
-                attribute option])] }]
+                __attribute option])] }]
 
 let rec structure_of_type context (ty : Parsetree.core_type)
     : Parsetree.core_type * Parsetree.expression =
@@ -1866,7 +1866,7 @@ let funs_of_transfers transfers =
         [%e transfer |> make_transfer [%expr refl__present] [%expr refl__absent]
           compose_expr]]
       ~attrs:[Metapp.Attr.mk (Metapp.mkloc "ocaml.warning")
-        (PStr [%str "-27"])]
+        (PStr [%str "-27-32"])]
   end
 
 let module_of_type_structure rec_arity constraints i type_structure
@@ -1930,7 +1930,7 @@ let module_of_type_structure rec_arity constraints i type_structure
         [%t Metapp.Typ.poly type_loc desc_type])]
       desc
       ~attrs:[Metapp.Attr.mk (Metapp.mkloc "ocaml.warning")
-        (PStr [%str "-34"])] in
+        (PStr [%str "-32-34"])] in
   ((transfers_types, [rec_arity_decl; kinds_decl; gadt_decl]), transfers_funs),
   (desc_sig, desc_def)
 
