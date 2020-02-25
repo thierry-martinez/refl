@@ -8,6 +8,11 @@ end
 
 module Comparers = BinaryVector (Comparer)
 
+type hook = {
+    hook :
+      'a 'b . 'a refl -> 'b refl -> ('a, 'b) Comparer.t -> ('a, 'b) Comparer.t
+  }
+
 type ('a, 'arity, 'b) typed_attribute_kind +=
   | Attribute_compare : ('a, 'arity, ('a, 'a) Comparer.t) typed_attribute_kind
 
@@ -21,6 +26,7 @@ type ('arity_a, 'gadt_a, 'arity_b, 'gadt_b) poly =
 let rec compare_gen :
   type a b structure arity_a arity_b rec_arity positive negative direct gadt_a
     gadt_b .
+  ?hook : hook ->
   (a, structure, arity_a, rec_arity, [< Kinds.comparable],
     positive, negative, direct, gadt_a) desc ->
   (b, structure, arity_b, rec_arity, [< Kinds.comparable],
@@ -28,7 +34,7 @@ let rec compare_gen :
   (arity_a, gadt_a, arity_b, gadt_b) poly ->
   (arity_a, arity_b, direct) Comparers.t ->
   (a, b) Comparer.t =
-fun desc_a desc_b poly comparers ->
+fun ?hook desc_a desc_b poly comparers ->
   let compare_tuple :
     type a b structure arity_a arity_b rec_arity positive negative direct
       gadt_a gadt_b.
@@ -44,7 +50,8 @@ fun desc_a desc_b poly comparers ->
     match
       Tuple.find [x; y]
         begin fun (Tuple.Find { items = [x; y]; _ }) ->
-          match compare_gen x.desc y.desc poly comparers x.value y.value with
+          match
+            compare_gen ?hook x.desc y.desc poly comparers x.value y.value with
           | 0 -> None
           | result -> Some result
         end
@@ -69,7 +76,8 @@ fun desc_a desc_b poly comparers ->
           match x.field, y.field with
           | Mono x', Mono y' ->
               match
-                compare_gen x'.desc y'.desc poly comparers x.value y.value with
+                compare_gen ?hook x'.desc y'.desc poly comparers x.value y.value
+              with
               | 0 -> None
               | result -> Some result
         end
@@ -96,7 +104,7 @@ fun desc_a desc_b poly comparers ->
           if i >= Array.length x then
             0
           else
-            match compare_gen desc_a desc_b poly comparers
+            match compare_gen ?hook desc_a desc_b poly comparers
                 (Array.unsafe_get x i) (Array.unsafe_get y i) with
             | 0 -> check (succ i)
             | result -> result in
@@ -170,18 +178,19 @@ fun desc_a desc_b poly comparers ->
             Variant.Constructor { argument = Variant.None; _ } -> 0
           | Variant.Constructor { argument = Variant.Some x; _ },
             Variant.Constructor { argument = Variant.Some y; _ } ->
-              compare_gen x.desc y.desc poly comparers x.value y.value
+              compare_gen ?hook x.desc y.desc poly comparers x.value y.value
           | Variant.Inherit x, Variant.Inherit y ->
-              compare_gen x.desc y.desc poly comparers x.value y.value
+              compare_gen ?hook x.desc y.desc poly comparers x.value y.value
       end
   | Lazy desc_a, Lazy desc_b ->
       fun x y ->
-        compare_gen desc_a desc_b poly comparers (Lazy.force x) (Lazy.force y)
+        compare_gen ?hook desc_a desc_b poly comparers (Lazy.force x)
+          (Lazy.force y)
   | Apply a, Apply b ->
       let comparers =
-        Comparers.make { f = fun x y -> compare_gen x y poly } a.arguments
+        Comparers.make { f = fun x y -> compare_gen ?hook x y poly } a.arguments
           b.arguments a.transfer comparers in
-      compare_gen a.desc b.desc begin match poly with
+      compare_gen ?hook a.desc b.desc begin match poly with
       | Poly -> Poly
       | Mono { converters; eq_gadt = Eq } ->
           let converters =
@@ -190,22 +199,22 @@ fun desc_a desc_b poly comparers ->
       end comparers
   | Rec a, Rec b ->
       let Eq = selection_functional_head a.index b.index in
-      compare_gen a.desc b.desc poly comparers
+      compare_gen ?hook a.desc b.desc poly comparers
   | RecArity a, RecArity b ->
-      compare_gen a.desc b.desc poly comparers
+      compare_gen ?hook a.desc b.desc poly comparers
   | Opaque _, Opaque _ ->
       fun _ _ -> 0
   | MapOpaque, MapOpaque ->
       fun _ _ -> 0
   | SelectGADT a, SelectGADT b ->
-      compare_gen a.desc b.desc begin match poly with
+      compare_gen ?hook a.desc b.desc begin match poly with
       | Poly -> Poly
       | Mono { converters; eq_gadt = Eq } ->
           let Eq = Convert.selection a.index b.index in
           Mono { converters; eq_gadt = Eq }
       end comparers
   | SubGADT a, SubGADT b ->
-      compare_gen a.desc b.desc begin match poly with
+      compare_gen ?hook a.desc b.desc begin match poly with
       | Poly -> Poly
       | Mono { converters; eq_gadt = Eq } ->
           let Eq = sub_gadt_functional a.sub_gadt b.sub_gadt in
@@ -216,7 +225,7 @@ fun desc_a desc_b poly comparers ->
         a.attributes.typed Attribute_compare,
         b.attributes.typed Attribute_compare, poly with
       | None, None, _ ->
-          compare_gen a.desc b.desc poly comparers
+          compare_gen ?hook a.desc b.desc poly comparers
       | Some comparer, _, Mono { converters; eq_gadt = Eq } ->
           fun x y ->
             comparer x (Convert.convert b.desc a.desc
@@ -228,12 +237,16 @@ fun desc_a desc_b poly comparers ->
           invalid_arg "Cannot use custom compare for polymorphic comparisons"
       end
   | Name a, Name b ->
-      compare_gen a.desc b.desc poly comparers
+      begin match hook with
+      | None -> compare_gen ?hook a.desc b.desc poly comparers
+      | Some { hook = f } ->
+          f a.refl b.refl (compare_gen ?hook a.desc b.desc poly comparers)
+      end
   | _ -> .
 
-let compare_poly desc_a desc_b comparers =
-  compare_gen desc_a desc_b Poly comparers
+let compare_poly ?hook desc_a desc_b comparers =
+  compare_gen ?hook desc_a desc_b Poly comparers
 
-let compare desc comparers =
-  compare_gen desc desc (Mono { converters = SameArity Eq; eq_gadt = Eq })
+let compare ?hook desc comparers =
+  compare_gen ?hook desc desc (Mono { converters = SameArity Eq; eq_gadt = Eq })
     comparers

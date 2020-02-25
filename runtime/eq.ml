@@ -8,16 +8,22 @@ end
 
 module Equalers = BinaryVector (Equaler)
 
+type hook = {
+    hook :
+      'a 'b . 'a refl -> 'b refl -> ('a, 'b) Equaler.t -> ('a, 'b) Equaler.t
+  }
+
 let rec equal_poly :
   type a b structure arity_a arity_b rec_arity positive negative direct gadt_a
     gadt_b .
+  ?hook : hook ->
   (a, structure, arity_a, rec_arity, [< Kinds.comparable],
     positive, negative, direct, gadt_a) desc ->
   (b, structure, arity_b, rec_arity, [< Kinds.comparable],
     positive, negative, direct, gadt_b) desc ->
       (arity_a, arity_b, direct) Equalers.t ->
       (a, b) Equaler.t =
-fun desc_a desc_b equalers ->
+fun ?hook desc_a desc_b equalers ->
   let equal_tuple :
     type a b structure arity_a arity_b rec_arity positive negative direct
       gadt_a gadt_b.
@@ -32,7 +38,7 @@ fun desc_a desc_b equalers ->
     match
       Tuple.find [x; y]
         begin fun (Tuple.Find { items = [x; y]; _ }) ->
-          if equal_poly x.desc y.desc equalers x.value y.value then
+          if equal_poly ?hook x.desc y.desc equalers x.value y.value then
             None
           else
             Some ()
@@ -56,7 +62,7 @@ fun desc_a desc_b equalers ->
         begin fun (Record.Find {items = [x; y]; _ }) ->
           match x.field, y.field with
           | Mono x', Mono y' ->
-              if equal_poly x'.desc y'.desc equalers x.value y.value then
+              if equal_poly ?hook x'.desc y'.desc equalers x.value y.value then
                 None
               else
                 Some ()
@@ -81,7 +87,7 @@ fun desc_a desc_b equalers ->
       Array.length x = Array.length y &&
       let rec check i =
         i >= Array.length x ||
-        equal_poly desc_a desc_b equalers
+        equal_poly ?hook desc_a desc_b equalers
           (Array.unsafe_get x i) (Array.unsafe_get y i) &&
         check (succ i) in
       check 0
@@ -148,36 +154,41 @@ fun desc_a desc_b equalers ->
             Variant.Constructor { argument = Variant.None; _ } -> true
           | Variant.Constructor { argument = Variant.Some x; _ },
             Variant.Constructor { argument = Variant.Some y; _ } ->
-              equal_poly x.desc y.desc equalers x.value y.value
+              equal_poly ?hook x.desc y.desc equalers x.value y.value
           | Variant.Inherit x, Variant.Inherit y ->
-              equal_poly x.desc y.desc equalers x.value y.value
+              equal_poly ?hook x.desc y.desc equalers x.value y.value
       end
   | Lazy desc_a, Lazy desc_b ->
       fun x y ->
-        equal_poly desc_a desc_b equalers (Lazy.force x) (Lazy.force y)
+        equal_poly ?hook desc_a desc_b equalers (Lazy.force x) (Lazy.force y)
   | Apply a, Apply b ->
       let equalers =
-        Equalers.make { f = equal_poly } a.arguments b.arguments
+        Equalers.make
+          { f = fun x -> equal_poly ?hook x } a.arguments b.arguments
           a.transfer equalers in
-      equal_poly a.desc b.desc equalers
+      equal_poly ?hook a.desc b.desc equalers
   | Rec a, Rec b ->
       let Eq = selection_functional_head a.index b.index in
-      equal_poly a.desc b.desc equalers
+      equal_poly ?hook a.desc b.desc equalers
   | RecArity a, RecArity b ->
-      equal_poly a.desc b.desc equalers
+      equal_poly ?hook a.desc b.desc equalers
   | Opaque _, Opaque _ ->
       fun _ _ -> true
   | MapOpaque, MapOpaque ->
       fun _ _ -> true
   | SelectGADT a, SelectGADT b ->
-      equal_poly a.desc b.desc equalers
+      equal_poly ?hook a.desc b.desc equalers
   | SubGADT a, SubGADT b ->
-      equal_poly a.desc b.desc equalers
+      equal_poly ?hook a.desc b.desc equalers
   | Attributes a, Attributes b ->
-      equal_poly a.desc b.desc equalers
+      equal_poly ?hook a.desc b.desc equalers
   | Name a, Name b ->
-      equal_poly a.desc b.desc equalers
+      begin match hook with
+      | None -> equal_poly ?hook a.desc b.desc equalers
+      | Some { hook = f } ->
+          f a.refl b.refl (equal_poly ?hook a.desc b.desc equalers)
+      end
   | _ -> .
 
-let equal desc equalers =
-  equal_poly desc desc equalers
+let equal ?hook desc equalers =
+  equal_poly ?hook desc desc equalers
