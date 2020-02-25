@@ -93,7 +93,6 @@ module Kinds = struct
       (PropertyOfSet (LongidentSet)))
 
   let to_type (exists, (direct, inherited)) =
-    let loc = !Ast_helper.default_loc in
     let row_fields =
       if TransferSet.is_empty exists then
         []
@@ -102,14 +101,18 @@ module Kinds = struct
           (Transfer.to_type
             (TransferSet.fold Transfer.compose exists Absent))] in
     let add_direct_kind txt accu =
-      Metapp.Rf.tag { loc; txt } false [] :: accu in
+      Metapp.Rf.tag (Metapp.mkloc txt) false [] :: accu in
     let row_fields = StringSet.fold add_direct_kind direct row_fields in
     let add_inherited_kind txt accu =
       Metapp.Rf.inherit_
-        (Ast_helper.Typ.constr { loc; txt } []) :: accu in
+        (Ast_helper.Typ.constr (Metapp.mkloc txt) []) :: accu in
     let row_fields =
       LongidentSet.fold add_inherited_kind inherited row_fields in
-    assert (row_fields <> []);
+    let row_fields =
+      if row_fields = [] then
+        [Metapp.Rf.tag (Metapp.mkloc "Absent") false []]
+      else
+        row_fields in
     Ast_helper.Typ.variant row_fields Closed None
 end
 
