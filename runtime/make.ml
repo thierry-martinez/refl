@@ -5,17 +5,17 @@ module StringMap = Stdcompat.Map.Make (String)
 type ('a, 'arity, 'b) typed_attribute_kind +=
   | Attribute_default : ('a, 'arity, 'a) typed_attribute_kind
 
-type ('arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) field =
+type ('arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) field =
   | F :
-    ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
+    ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct,
         'gadt) desc * 'a ->
-      ('arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) field
+      ('arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) field
 
 let rec make_fields :
   type types structures .
-  (types, structures, 'arity, 'rec_arity, 'kinds, 'positive,
+  (types, structures, 'arity, 'rec_group, 'kinds, 'positive,
     'negative, 'direct, 'gadt) record_structure ->
-  ('arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt)
+  ('arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt)
     field StringMap.t ->
   types =
 fun structures fields ->
@@ -43,17 +43,17 @@ fun structures fields ->
       head, make_fields tail fields
 
 type ('a, 'b) record_type_structure =
-    [`RecArity of [`Name of [`Record of 'a]] * 'b]
+    [`RecGroup of [`Name of [`Record of 'a]] * 'b]
 
 let make :
-  type a structures new_rec_arity .
-  (a, (structures, new_rec_arity) record_type_structure, 'arity,
-    'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
-  ('arity, new_rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt)
+  type a structures new_rec_group .
+  (a, (structures, new_rec_group) record_type_structure, 'arity,
+    'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
+  ('arity, new_rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt)
     field StringMap.t ->
   a =
 fun desc fields ->
-  let RecArity { desc = Name { desc =
+  let RecGroup { desc = Name { desc =
       Record { structure; construct; _ }; _ }; _ } =
     desc in
   construct (make_fields structure fields)

@@ -9,15 +9,15 @@ end
 module Folds = ParameterizedVector (Fold)
 
 let fold :
-  type a structure arity rec_arity positive negative direct gadt .
-  (a, structure, arity, rec_arity, 'kinds, positive, negative, direct, gadt)
+  type a structure arity rec_group positive negative direct gadt .
+  (a, structure, arity, rec_group, 'kinds, positive, negative, direct, gadt)
     desc -> (arity, 'acc, direct) Folds.t -> (a, 'acc) Fold.t =
 fun (type acc) desc folds x (acc : acc) ->
   let module Vector = Folds.Unary (struct type t = acc end) in
 
 let rec fold :
-  type a structure arity rec_arity positive negative direct gadt .
-  (a, structure, arity, rec_arity, 'kinds, positive, negative, direct, gadt)
+  type a structure arity rec_group positive negative direct gadt .
+  (a, structure, arity, rec_group, 'kinds, positive, negative, direct, gadt)
     desc -> (arity, direct) Vector.t -> (a, acc) Fold.t =
 fun desc folds x acc ->
 
@@ -101,7 +101,7 @@ fun desc folds x acc ->
       fold desc folds x acc
   | Rec { desc; _ } ->
       fold desc folds x acc
-  | RecArity { desc } ->
+  | RecGroup { desc } ->
       fold desc folds x acc
   | Opaque _ -> acc
   | MapOpaque -> acc

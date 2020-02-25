@@ -19,7 +19,7 @@ type ('a, 'arity, 'b) typed_attribute_kind +=
 type 'kinds value =
   | Value : {
       desc :
-        ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) desc;
       value : 'a;
       printers : ('arity, 'direct) Printers.t;
@@ -27,8 +27,8 @@ type 'kinds value =
       'kinds value
 
 let rec pp :
-  type a structure arity rec_arity positive negative direct gadt .
-  (a, structure, arity, rec_arity, 'kinds, positive, negative, direct, gadt)
+  type a structure arity rec_group positive negative direct gadt .
+  (a, structure, arity, rec_group, 'kinds, positive, negative, direct, gadt)
     desc ->
       (arity, direct) Printers.t -> a Printer.t =
 fun desc printers fmt x ->
@@ -86,8 +86,8 @@ fun desc printers fmt x ->
     Format.pp_close_box fmt () in
 
   let rec to_list_aux :
-    type a structure arity rec_arity positive negative direct gadt .
-    (a, structure, arity, rec_arity, 'kinds, positive, negative, direct,
+    type a structure arity rec_group positive negative direct gadt .
+    (a, structure, arity, rec_group, 'kinds, positive, negative, direct,
       gadt) desc ->
     a ->
     (arity, direct) Printers.t ->
@@ -125,7 +125,7 @@ fun desc printers fmt x ->
         to_list_aux desc value printers acc
     | Rec { desc; _ } ->
         to_list_aux desc value printers acc
-    | RecArity { desc } ->
+    | RecGroup { desc } ->
         to_list_aux desc value printers acc
     | SelectGADT { desc; _ } ->
         to_list_aux desc value printers acc
@@ -283,7 +283,7 @@ fun desc printers fmt x ->
       pp desc printers fmt x
   | Rec { desc; _ } ->
       pp desc printers fmt x
-  | RecArity { desc } ->
+  | RecGroup { desc } ->
       pp desc printers fmt x
   | Opaque _ ->
       Format.pp_print_string fmt "<opaque>"

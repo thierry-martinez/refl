@@ -217,8 +217,8 @@ let refl_name s =
 let structure_name s =
   s ^ "__structure"
 
-let rec_arity_name s =
-  s ^ "__rec_arity"
+let rec_group_name s =
+  s ^ "__rec_group"
 
 let arity_name s =
   s ^ "__arity"
@@ -235,7 +235,7 @@ let type_refl_ctor s =
 type type_names = {
      refl : string;
      structure : string;
-     rec_arity : string;
+     rec_group : string;
      arity : string;
      kinds : string;
      gadt : string;
@@ -245,7 +245,7 @@ type type_names = {
 let type_names_of_type_name type_name = {
      refl = refl_name type_name;
      structure = structure_name type_name;
-     rec_arity = rec_arity_name type_name;
+     rec_group = rec_group_name type_name;
      arity = arity_name type_name;
      kinds = kinds_name type_name;
      gadt = gadt_name type_name;
@@ -414,7 +414,7 @@ let anil = refl_dot "ANil"
 
 let acons = refl_dot "ACons"
 
-let rec_arity_of_list l =
+let rec_group_of_list l =
   typed_vector_of_list (construct anil) acons l
 *)
 
@@ -464,16 +464,16 @@ let structure_of_constr structure_of_type context ?rec_type
           Ast_helper.Typ.constr
             (Metapp.mkloc (subst_ident structure_name constr))
             [] in
-        let rec_arity_type =
+        let rec_group_type =
           Ast_helper.Typ.constr
-            (Metapp.mkloc (subst_ident rec_arity_name constr))
+            (Metapp.mkloc (subst_ident rec_group_name constr))
             [] in
         let unwrapped_desc =
           Ast_helper.Exp.ident
             (Metapp.mkloc (subst_ident refl_name constr)) in
-        [%type: [`RecArity of [%t structure] * [%t rec_arity_type]]],
-        [%expr RecArity { desc = [%e unwrapped_desc](*;
-          rec_arity = [%e rec_arity_expr] *)}]
+        [%type: [`RecGroup of [%t structure] * [%t rec_group_type]]],
+        [%expr RecGroup { desc = [%e unwrapped_desc](*;
+          rec_group = [%e rec_group_expr] *)}]
     | Some (index, { desc_name; recursive; _ }) ->
         recursive := Recursive;
         let arrow =
@@ -1224,7 +1224,7 @@ let structure_of_label_declaration context prefix single_label
           [%t positives] * [%t negatives] * [%t directs]]] in
       let type_args = List.map type_constr_of_string context.type_args in
       let kinds = type_constr_of_string context.type_names.kinds in
-      let rec_arity = type_constr_of_string context.type_names.rec_arity in
+      let rec_group = type_constr_of_string context.type_names.rec_group in
       let gadt =
         type_constr_of_string context.type_names.gadt ~args:type_args in
       let internal_name, internal_label, type_declarations =
@@ -1251,7 +1251,7 @@ let structure_of_label_declaration context prefix single_label
             ([%t count_type], forall) Refl.length ->
             (forall, [%t arity_types], subarity) Refl.append ->
             ([%t internal_type], [%t field_structure], subarity,
-              [%t rec_arity], [> [%t kinds]], [%t positive], [%t negative],
+              [%t rec_group], [> [%t kinds]], [%t positive], [%t negative],
               [%t direct], [%t gadt]) Refl.forall_destruct_result =
           fun [%p count_length.pat]
               [%p count_append.pat] ->
@@ -1491,7 +1491,7 @@ let structure_of_exists single_constructor ctor_count i context
   let parameter_type_vars_tuple = tuple_of_types parameter_type_vars in
   context.rev_eqs := parameter_type_vars_tuple :: !(context.rev_eqs);
   let kinds = type_constr_of_string context.type_names.kinds in
-  let rec_arity = type_constr_of_string context.type_names.rec_arity in
+  let rec_group = type_constr_of_string context.type_names.rec_group in
   let gadt =
     type_constr_of_string context.type_names.gadt ~args:type_args in
   let variables = snd !(context'.constraints) in
@@ -1541,7 +1541,7 @@ let structure_of_exists single_constructor ctor_count i context
          ([%t count], exists) Refl.length ->
          ([%t parameter_type_tuple], exists) Refl.gadt_constraints ->
          (exists, [%t arity_types], subarity) Refl.append ->
-         ([%t value_type], [%t structure], subarity, [%t rec_arity],
+         ([%t value_type], [%t structure], subarity, [%t rec_group],
            [> [%t kinds]], [%t positive], [%t negative], [%t direct], [%t gadt])
              Refl.exists_construct =
        fun exists_count _constraints exists ->
@@ -1559,7 +1559,7 @@ let structure_of_exists single_constructor ctor_count i context
             context.type_args [%expr (fun
               ([%p composed.pat] : [%t value_type]) :
               ([%t count], [%t parameter_type_tuple],
-             [%t value_type], [%t structure], [%t arity_types], [%t rec_arity],
+             [%t value_type], [%t structure], [%t arity_types], [%t rec_group],
              [> [%t kinds]], [%t positive], [%t negative], [%t direct],
                [%t gadt])
              Refl.exists_destruct ->
@@ -1869,7 +1869,7 @@ let funs_of_transfers transfers =
         (PStr [%str "-27-32"])]
   end
 
-let module_of_type_structure rec_arity constraints i type_structure
+let module_of_type_structure rec_group constraints i type_structure
     :
     ((Parsetree.type_declaration list * Parsetree.type_declaration list) *
        (Parsetree.value_description * Parsetree.value_binding) list) *
@@ -1878,12 +1878,12 @@ let module_of_type_structure rec_arity constraints i type_structure
     structure; unwrapped_desc; context; _ } = type_structure in
   Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
   let types = type_sequence_of_list context.type_vars in
-  let rec_arity_type = type_constr_of_string context.type_names.rec_arity in
-  let rec_arity_decl =
-    let (declared, manifest) = !rec_arity in
+  let rec_group_type = type_constr_of_string context.type_names.rec_group in
+  let rec_group_decl =
+    let (declared, manifest) = !rec_group in
     if not declared then
-      rec_arity := (true, rec_arity_type);
-    Ast_helper.Type.mk (Metapp.mkloc context.type_names.rec_arity)
+      rec_group := (true, rec_group_type);
+    Ast_helper.Type.mk (Metapp.mkloc context.type_names.rec_group)
       ~manifest in
   let constraints = constraints i in
   let kinds = type_constr_of_string context.type_names.kinds in
@@ -1910,7 +1910,7 @@ let module_of_type_structure rec_arity constraints i type_structure
   let desc_type =
     [%type:
       ([%t context.type_expr], [%t structure], [%t types],
-        [%t rec_arity_type], [> [%t kinds]],
+        [%t rec_group_type], [> [%t kinds]],
         [%t variable_types Constraints.Variables.positive_name
           (fun i -> "absent_positive" ^ string_of_int i)],
         [%t variable_types Constraints.Variables.negative_name
@@ -1931,7 +1931,7 @@ let module_of_type_structure rec_arity constraints i type_structure
       desc
       ~attrs:[Metapp.Attr.mk (Metapp.mkloc "ocaml.warning")
         (PStr [%str "-32-34"])] in
-  ((transfers_types, [rec_arity_decl; kinds_decl; gadt_decl]), transfers_funs),
+  ((transfers_types, [rec_group_decl; kinds_decl; gadt_decl]), transfers_funs),
   (desc_sig, desc_def)
 
 let rec_types_of_type_info (rec_flag : Asttypes.rec_flag) type_infos =
@@ -1963,14 +1963,14 @@ let modules_of_type_declarations (rec_flag, tds) =
     IntSet.fold union type_structure.rec_type_refs
       (Constraints.union (constraints i) type_structure.constraints)
   end in
-  let rec_arity_type =
+  let rec_group_type =
     type_sequence_of_list (type_structures |> List.map begin
       fun (type_structure : type_structure) : Parsetree.core_type ->
         [%type: [%t type_structure.arity_type] * [%t type_structure.structure]]
     end) in
 (*
-  let rec_arity_expr =
-    rec_arity_of_list (type_structures |> List.map begin
+  let rec_group_expr =
+    rec_group_of_list (type_structures |> List.map begin
       fun (type_structure : type_structure) ->
         exp [%expr [%e expression_of_value
              (length_of_int type_structure.type_info.arity)],
@@ -1983,7 +1983,7 @@ let modules_of_type_declarations (rec_flag, tds) =
   let type_extensions = List.flatten type_extensions in
   let desc =
     List.mapi
-      (module_of_type_structure (ref (false, rec_arity_type)) constraints)
+      (module_of_type_structure (ref (false, rec_group_type)) constraints)
       type_structures in
   let decls, desc = List.split desc in
   let types, vals = List.split decls in
@@ -1992,15 +1992,15 @@ let modules_of_type_declarations (rec_flag, tds) =
     List.flatten transfers @ type_declarations @ List.flatten types in
   let desc_sig, desc_bindings = List.split desc in
 (*
-  let rec_arity_name = (List.hd type_structures).context.type_names.rec_arity in
+  let rec_group_name = (List.hd type_structures).context.type_names.rec_group in
   let desc_sig =
-    Ast_helper.Sig.value (Ast_helper.Value.mk { loc; txt = rec_arity_name }
-      (Ast_helper.Typ.constr { loc; txt = (refl_dot "rec_arity") }
-         [type_constr_of_string rec_arity_name;
-           type_constr_of_string rec_arity_name])) :: desc_sig in
+    Ast_helper.Sig.value (Ast_helper.Value.mk { loc; txt = rec_group_name }
+      (Ast_helper.Typ.constr { loc; txt = (refl_dot "rec_group") }
+         [type_constr_of_string rec_group_name;
+           type_constr_of_string rec_group_name])) :: desc_sig in
   let desc_bindings =
-    Ast_helper.Vb.mk (Ast_helper.Pat.var { loc; txt = rec_arity_name })
-      (expression_of_value rec_arity_expr) :: desc_bindings in
+    Ast_helper.Vb.mk (Ast_helper.Pat.var { loc; txt = rec_group_name })
+      (expression_of_value rec_group_expr) :: desc_bindings in
 *)
   let val_desc, val_bindings = List.split (List.flatten vals) in
   let val_sig = List.map Ast_helper.Sig.value val_desc in

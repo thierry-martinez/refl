@@ -219,15 +219,15 @@ module type VectorS = sig
     ('source, 'sub, 'arg) transfer_arguments -> ('sequence, 'source) t ->
     (('sequence, 'arg) t, ('sub, [`Absent]) eq) result
 
-  type ('arity, 'rec_arity, 'kinds) make = {
+  type ('arity, 'rec_group, 'kinds) make = {
       f : 'a 'structure 'ap 'an 'ad 'gadt .
-        ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'ap, 'an, 'ad, 'gadt)
+        ('a, 'structure, 'arity, 'rec_group, 'kinds, 'ap, 'an, 'ad, 'gadt)
           desc -> ('arity, 'ad) t -> 'a T.t;
     }
 
   val make :
-    ('arity, 'rec_arity, 'kinds) make ->
-    ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'arguments, 'gadt)
+    ('arity, 'rec_group, 'kinds) make ->
+    ('types, 'structures, 'arity, 'rec_group, 'kinds, 'arguments, 'gadt)
       vector ->
     ('positive, 'negative, 'direct, 'subpositive, 'subnegative, 'subdirect,
       'arguments) transfer ->
@@ -295,16 +295,16 @@ module Vector (T : UnaryTypeS) : VectorS with module T = T = struct
         | Error result -> Error result
         end
 
-  type ('arity, 'rec_arity, 'kinds) make = {
+  type ('arity, 'rec_group, 'kinds) make = {
       f : 'a 'structure 'ap 'an 'ad 'gadt .
-        ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'ap, 'an, 'ad, 'gadt)
+        ('a, 'structure, 'arity, 'rec_group, 'kinds, 'ap, 'an, 'ad, 'gadt)
           desc -> ('arity, 'ad) t -> 'a T.t;
     }
 
   let rec make :
     type types structures subpositive subnegative subdirect arguments gadt .
-    ('arity, 'rec_arity, 'kinds) make ->
-    (types, structures, 'arity, 'rec_arity, 'kinds, arguments, gadt) vector ->
+    ('arity, 'rec_group, 'kinds) make ->
+    (types, structures, 'arity, 'rec_group, 'kinds, arguments, gadt) vector ->
     ('positive, 'negative, 'direct, subpositive, subnegative, subdirect,
       arguments) transfer ->
     ('arity, 'direct) t ->
@@ -411,21 +411,21 @@ module BinaryVector (T : BinaryTypeS) = struct
         | Error result -> Error result
         end
 
-  type ('arity_a, 'arity_b, 'rec_arity, 'kinds, 'gadt_a, 'gadt_b) make = {
+  type ('arity_a, 'arity_b, 'rec_group, 'kinds, 'gadt_a, 'gadt_b) make = {
       f : 'a 'b 'structure 'ap 'an 'ad .
-        ('a, 'structure, 'arity_a, 'rec_arity, 'kinds, 'ap, 'an, 'ad, 'gadt_a)
+        ('a, 'structure, 'arity_a, 'rec_group, 'kinds, 'ap, 'an, 'ad, 'gadt_a)
           desc ->
-        ('b, 'structure, 'arity_b, 'rec_arity, 'kinds, 'ap, 'an, 'ad, 'gadt_b)
+        ('b, 'structure, 'arity_b, 'rec_group, 'kinds, 'ap, 'an, 'ad, 'gadt_b)
           desc -> ('arity_a, 'arity_b, 'ad) t -> ('a, 'b) T.t;
     }
 
   let rec make :
     type types_a types_b structures subpositive subnegative subdirect arguments
       gadt_a gadt_b .
-    ('arity_a, 'arity_b, 'rec_arity, 'kinds, gadt_a, gadt_b) make ->
-    (types_a, structures, 'arity_a, 'rec_arity, 'kinds, arguments, gadt_a)
+    ('arity_a, 'arity_b, 'rec_group, 'kinds, gadt_a, gadt_b) make ->
+    (types_a, structures, 'arity_a, 'rec_group, 'kinds, arguments, gadt_a)
       vector ->
-    (types_b, structures, 'arity_b, 'rec_arity, 'kinds, arguments, gadt_b)
+    (types_b, structures, 'arity_b, 'rec_group, 'kinds, arguments, gadt_b)
       vector ->
     ('positive, 'negative, 'direct, subpositive, subnegative, subdirect,
       arguments) transfer ->
@@ -659,22 +659,22 @@ module SignedVector (T : BinaryTypeS) = struct
               | Skip, Skip, _, _, _ -> TPN (SNone :: tail)
               end
 
-  type ('rec_arity, 'a_kinds, 'b_kinds) make = {
+  type ('rec_group, 'a_kinds, 'b_kinds) make = {
       f : 'a 'b 'structure 'a_arity 'b_arity 'ap 'an 'ad 'gadt .
-        ('a, 'structure, 'a_arity, 'rec_arity, 'a_kinds, 'ap, 'an, 'ad,
+        ('a, 'structure, 'a_arity, 'rec_group, 'a_kinds, 'ap, 'an, 'ad,
           'gadt) desc ->
-        ('b, 'structure, 'b_arity, 'rec_arity, 'b_kinds, 'ap, 'an, 'ad,
+        ('b, 'structure, 'b_arity, 'rec_group, 'b_kinds, 'ap, 'an, 'ad,
           'gadt) desc ->
           ('a_arity, 'b_arity, 'ap, 'an) t -> ('a, 'b) T.t;
     }
 
   let rec make :
     type a_types b_types structures arguments subpositive subnegative
-          subdirect a_arity b_arity rec_arity gadt .
-    (rec_arity, 'a_kinds, 'b_kinds) make ->
-    (a_types, structures, a_arity, rec_arity, 'a_kinds, arguments, gadt)
+          subdirect a_arity b_arity rec_group gadt .
+    (rec_group, 'a_kinds, 'b_kinds) make ->
+    (a_types, structures, a_arity, rec_group, 'a_kinds, arguments, gadt)
       vector ->
-    (b_types, structures, b_arity, rec_arity, 'b_kinds, arguments, gadt)
+    (b_types, structures, b_arity, rec_group, 'b_kinds, arguments, gadt)
       vector ->
     ('positive, 'negative, 'direct, subpositive, subnegative, subdirect,
       arguments) transfer ->
@@ -705,22 +705,22 @@ module SignedVector (T : BinaryTypeS) = struct
 end
 
 module type Desc_type = sig
-  type ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+  type ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
     'direct, 'gadt) t
 end
 
 module Desc_vector (T : Desc_type) = struct
-  type ('sequence, 'structure, 'arities, 'rec_arity, 'kinds, 'positive,
+  type ('sequence, 'structure, 'arities, 'rec_group, 'kinds, 'positive,
          'negative, 'direct, 'gadts) t =
     | [] :
-        (unit, 'structure, unit, 'rec_arity, 'kinds, 'positive, 'negative,
+        (unit, 'structure, unit, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadts) t
     | (::) :
-        ('head, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+        ('head, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadt) T.t *
-        ('tail, 'structure, 'arities, 'rec_arity, 'kinds, 'positive,
+        ('tail, 'structure, 'arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadts) t ->
-          ('head * 'tail, 'structure, 'arity * 'arities, 'rec_arity,
+          ('head * 'tail, 'structure, 'arity * 'arities, 'rec_group,
             'kinds, 'positive, 'negative, 'direct, 'gadt * 'gadts) t
 end
 
@@ -738,12 +738,12 @@ module Section = struct
           ('index, 'sequences, 'subsequences) some
 end
 
-type ('a_arity, 'b_arity, 'rec_arity, 'kinds_a, 'kinds_b, 'positive, 'negative,
+type ('a_arity, 'b_arity, 'rec_group, 'kinds_a, 'kinds_b, 'positive, 'negative,
        'direct, 'gadt) map = {
     f : 'a 'b 'structure .
-      ('a, 'structure, 'a_arity, 'rec_arity, 'kinds_a, 'positive, 'negative,
+      ('a, 'structure, 'a_arity, 'rec_group, 'kinds_a, 'positive, 'negative,
         'direct, 'gadt) desc ->
-      ('b, 'structure, 'b_arity, 'rec_arity, 'kinds_b, 'positive, 'negative,
+      ('b, 'structure, 'b_arity, 'rec_group, 'kinds_b, 'positive, 'negative,
         'direct, 'gadt) desc -> 'a -> 'b
   }
 
@@ -752,7 +752,7 @@ module type Mapper = sig
 
   type negative
 
-  type rec_arity
+  type rec_group
 
   type gadt
 
@@ -771,9 +771,9 @@ module type Mapper = sig
 
   val map :
       ('a_arity, 'b_arity, 'positive, 'negative) t ->
-      ('a, 'structure, 'a_arity, rec_arity, 'kinds, 'positive,
+      ('a, 'structure, 'a_arity, rec_group, 'kinds, 'positive,
         'negative, 'direct, gadt) desc ->
-      ('b, 'structure, 'b_arity, rec_arity, 'kinds, 'positive,
+      ('b, 'structure, 'b_arity, rec_group, 'kinds, 'positive,
         'negative, 'direct, gadt) desc -> 'a -> 'b
 end
 
@@ -855,34 +855,34 @@ fun append1 append2 ->
 
 module Tuple = struct
   module Tuple = struct
-    type ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+    type ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) structure =
     | [] :
-        (unit, unit, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
+        (unit, unit, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct,
           'gadt) structure
     | (::) :
-        ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) desc *
-        ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+        ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) structure ->
-        ('a * 'types, 'structure * 'structures, 'arity, 'rec_arity,
+        ('a * 'types, 'structure * 'structures, 'arity, 'rec_group,
           'kinds, 'positive, 'negative, 'direct, 'gadt) structure
 
     let rec of_desc :
       type types structures .
-      (types, structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+      (types, structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) tuple_structure ->
-      (types, structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+      (types, structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) structure =
     fun tuple ->
       match tuple with
       | TNil -> []
       | TCons { head; tail } -> head :: of_desc tail
 
-    type ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+    type ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
            'direct, 'gadt) t = {
         structure :
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) structure;
         values : 'types;
       }
@@ -891,10 +891,10 @@ module Tuple = struct
   include Tuple
 
   module Item = struct
-    type ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+    type ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) t = {
         desc :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
             'direct, 'gadt) desc;
         value : 'a;
       }
@@ -902,11 +902,11 @@ module Tuple = struct
 
   let rec map :
     type a_types b_types structures gadt .
-    ('a_arity, 'b_arity, 'rec_arity, 'kinds_a, 'kinds_b, 'positive, 'negative,
+    ('a_arity, 'b_arity, 'rec_group, 'kinds_a, 'kinds_b, 'positive, 'negative,
       'direct, gadt) map ->
-    (a_types, structures, 'a_arity, 'rec_arity, 'kinds_a, 'positive, 'negative,
+    (a_types, structures, 'a_arity, 'rec_group, 'kinds_a, 'positive, 'negative,
       'direct, gadt) tuple_structure ->
-    (b_types, structures, 'b_arity, 'rec_arity, 'kinds_b, 'positive, 'negative,
+    (b_types, structures, 'b_arity, 'rec_group, 'kinds_b, 'positive, 'negative,
       'direct, gadt) tuple_structure ->
     a_types -> b_types =
   fun f a_tuple b_tuple a_types ->
@@ -918,32 +918,32 @@ module Tuple = struct
         (f.f a_head b_head head, map f a_tail b_tail tail)
     | _ -> .
 
-  type ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+  type ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
          'direct, 'gadt) fold =
     | Fold : {
           index : ([`Succ of 'index], 'types, 'a, _) selection;
           index_structure :
             ([`Succ of 'index], 'structures, 'structure, _) selection;
           desc :
-            ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+            ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
               'direct, 'gadt) desc;
           value : 'a;
         } ->
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) fold
 
   let fold
       (f :
-        ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) fold -> 'acc -> 'acc)
       (tuple :
-        ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) t) acc =
     let rec aux :
       type index head head_structure subtypes substructures .
       (index, 'types, head, subtypes) selection ->
       (index, 'structures, head_structure, substructures) selection ->
-      (subtypes, substructures, 'arity, 'rec_arity, 'kinds, 'positive,
+      (subtypes, substructures, 'arity, 'rec_group, 'kinds, 'positive,
         'negative, 'direct, 'gadt) structure ->
       subtypes -> 'a -> 'a =
     fun index index_structure structure values acc ->
@@ -961,39 +961,39 @@ module Tuple = struct
   module Tuples = Desc_vector (Tuple)
 
   type ('index, 'structure, 'structures, 'arities, 'tuples,
-        'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadts)
+        'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadts)
           structure_find =
     | Structure_find : {
           section : ([`Succ of 'index], 'tuples, 'section, 'others) Section.t;
           items :
-            ('section, 'structure, 'arities, 'rec_arity, 'kinds, 'positive,
+            ('section, 'structure, 'arities, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadts) Items.t;
           others :
-            ('others, 'structures, 'arities, 'rec_arity, 'kinds, 'positive,
+            ('others, 'structures, 'arities, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadts) Tuples.t
         } ->
           ('index, 'structure, 'structures, 'arities, 'tuples,
-            'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadts)
+            'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadts)
             structure_find
 
-  type ('tuples, 'structures, 'arities, 'rec_arity, 'kinds, 'positive,
+  type ('tuples, 'structures, 'arities, 'rec_group, 'kinds, 'positive,
         'negative, 'direct, 'gadts) find =
     | Find : {
           index :
             ([`Succ of 'index], 'structures, 'structure, _) selection;
           section : ([`Succ of 'index], 'tuples, 'section, _) Section.t;
           items :
-            ('section, 'structure, 'arities, 'rec_arity, 'kinds, 'positive,
+            ('section, 'structure, 'arities, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadts) Items.t;
     } ->
-        ('tuples, 'structures, 'arities, 'rec_arity, 'kinds, 'positive,
+        ('tuples, 'structures, 'arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadts) find
 
   let find :
     type arities gadts .
-        ('tuple * 'tuples, 'structures, arities, 'rec_arity, 'kinds, 'positive,
+        ('tuple * 'tuples, 'structures, arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, gadts) Tuples.t ->
-        (('tuple * 'tuples, 'structures, arities, 'rec_arity, 'kinds, 'positive,
+        (('tuple * 'tuples, 'structures, arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, gadts) find -> 'a option) ->
         'a option =
   fun tuples f ->
@@ -1004,10 +1004,10 @@ module Tuple = struct
         ([`Succ of index], base_structures, current, tail_structures)
           selection ->
         (index, tail_section, current_section, tail) Section.t ->
-        (tail, structure * other_structures, arities, 'rec_arity,
+        (tail, structure * other_structures, arities, 'rec_group,
           'kinds, 'positive, 'negative, 'direct, gadts) Tuples.t ->
         (index, structure, other_structures, arities, tail_section,
-          'rec_arity, 'kinds, 'positive, 'negative, 'direct, gadts)
+          'rec_group, 'kinds, 'positive, 'negative, 'direct, gadts)
             structure_find =
     fun index section tuples ->
       let open Section in
@@ -1032,7 +1032,7 @@ module Tuple = struct
         type index subtuple subtuples substructures structure section .
         (index, 'structures, structure, substructures) selection ->
         (index, 'tuple * 'tuples, section, subtuple * subtuples) Section.t ->
-        (subtuple * subtuples, substructures, arities, 'rec_arity, 'kinds,
+        (subtuple * subtuples, substructures, arities, 'rec_group, 'kinds,
           'positive, 'negative, 'direct, gadts) Tuples.t ->
         'a option =
     fun index section tuples ->
@@ -1051,7 +1051,7 @@ module Tuple = struct
           begin match
             f ((Find { index; section;
               items = { desc; value } :: items } :
-                ('tuple * 'tuples, 'structures, arities, 'rec_arity, 'kinds,
+                ('tuple * 'tuples, 'structures, arities, 'rec_group, 'kinds,
                   'positive, 'negative, 'direct, gadts) find ))
           with
           | None -> aux index section ({ structure; values } :: others)
@@ -1060,7 +1060,7 @@ module Tuple = struct
       in
     let rec start_section :
         type subtuples arities gadts .
-        (subtuples, 'structures, arities, 'rec_arity, 'kinds, 'positive,
+        (subtuples, 'structures, arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, gadts) Tuples.t ->
         ([`Zero], subtuples, subtuples) Section.some =
     fun tuples ->
@@ -1076,20 +1076,20 @@ end
 
 module Record = struct
   module Record = struct
-    type ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+    type ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
            'direct, 'gadt) t = {
         structure :
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) record_structure;
         values : 'types;
       }
   end
 
   module Field = struct
-    type ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+    type ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) t = {
         field :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
             'direct, 'gadt) record_field;
         value : 'a;
       }
@@ -1099,11 +1099,11 @@ module Record = struct
 
   let rec map :
     type a_types b_types structures gadt .
-    ('a_arity, 'b_arity, 'rec_arity, [> `Poly of unit] as 'kinds_a, 'kinds_b,
+    ('a_arity, 'b_arity, 'rec_group, [> `Poly of unit] as 'kinds_a, 'kinds_b,
       'positive, 'negative, 'direct, gadt) map ->
-    (a_types, structures, 'a_arity, 'rec_arity, 'kinds_a, 'positive, 'negative,
+    (a_types, structures, 'a_arity, 'rec_group, 'kinds_a, 'positive, 'negative,
       'direct, gadt) record_structure ->
-    (b_types, structures, 'b_arity, 'rec_arity, 'kinds_b, 'positive, 'negative,
+    (b_types, structures, 'b_arity, 'rec_group, 'kinds_b, 'positive, 'negative,
       'direct, gadt) record_structure ->
     a_types -> b_types =
   fun f a_record b_record a_types ->
@@ -1123,9 +1123,9 @@ module Record = struct
       ('count, [`Absent], 'positive, 'negative, 'direct, 'positives,
         'negatives, 'directs, 'subpositive, 'subnegative, 'subdirect)
         subvariables ->
-      ('a, 'structure, 'arity_a, 'rec_arity, 'kinds, 'subpositive,
+      ('a, 'structure, 'arity_a, 'rec_group, 'kinds, 'subpositive,
         'subnegative, 'subdirect, M.gadt, 'count) forall_destruct ->
-      (('b, 'structure, 'arity_b, 'rec_arity, 'kinds, 'subpositive,
+      (('b, 'structure, 'arity_b, 'rec_group, 'kinds, 'subpositive,
         'subnegative, 'subdirect, M.gadt, 'count) forall_construct -> 'b) ->
       'a -> 'b =
     fun mapper variables_a destruct_a construct_b value ->
@@ -1133,7 +1133,7 @@ module Record = struct
         type forall b subarity .
         (_, forall) length ->
         (forall, 'arity_b, subarity) append ->
-        (b, _, subarity, M.rec_arity, 'kinds, 'subpositive,
+        (b, _, subarity, M.rec_group, 'kinds, 'subpositive,
           'subnegative, 'subdirect, 'gadt) desc ->
         b =
       fun count arity_b desc_b ->
@@ -1150,9 +1150,9 @@ module Record = struct
     let rec map_with :
       type types_a types_b arity_a arity_b structure kinds .
       (arity_a, arity_b, 'positive, 'negative) M.t ->
-      (types_a, structure, arity_a, M.rec_arity, kinds, 'positive,
+      (types_a, structure, arity_a, M.rec_group, kinds, 'positive,
         'negative, 'direct, M.gadt) record_structure ->
-      (types_b, structure, arity_b, M.rec_arity, kinds, 'positive,
+      (types_b, structure, arity_b, M.rec_group, kinds, 'positive,
         'negative, 'direct, M.gadt) record_structure ->
       types_a -> types_b =
     fun mapper record_a record_b types_a ->
@@ -1178,32 +1178,32 @@ module Record = struct
       map_with M.initial record_a record_b types_a
   end
 
-  type ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+  type ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
          'direct, 'gadt) fold =
     | Fold : {
           index : ([`Succ of 'index], 'types, 'a, _) selection;
           index_structure :
             ([`Succ of 'index], 'structures, 'structure, _) selection;
           field :
-            ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+            ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
               'direct, 'gadt) record_field;
           value : 'a;
         } ->
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) fold
 
   let fold
       (f :
-        ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) fold -> 'acc -> 'acc)
       (record :
-        ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) t) acc =
     let rec aux :
       type index head head_structure subtypes substructures .
       (index, 'types, head, subtypes) selection ->
       (index, 'structures, head_structure, substructures) selection ->
-      (subtypes, substructures, 'arity, 'rec_arity, 'kinds, 'positive,
+      (subtypes, substructures, 'arity, 'rec_group, 'kinds, 'positive,
         'negative, 'direct, 'gadt) record_structure ->
       subtypes -> 'a -> 'a =
     fun index index_structure structure values acc ->
@@ -1221,39 +1221,39 @@ module Record = struct
   module Records = Desc_vector (Record)
 
   type ('index, 'structure, 'structures, 'arities, 'records,
-        'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadts)
+        'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadts)
           structure_find =
     | Structure_find : {
           section : ([`Succ of 'index], 'records, 'section, 'others) Section.t;
           items :
-            ('section, 'structure, 'arities, 'rec_arity, 'kinds, 'positive,
+            ('section, 'structure, 'arities, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadts) Fields.t;
           others :
-            ('others, 'structures, 'arities, 'rec_arity, 'kinds, 'positive,
+            ('others, 'structures, 'arities, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadts) Records.t
         } ->
           ('index, 'structure, 'structures, 'arities, 'records,
-            'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadts)
+            'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadts)
             structure_find
 
-  type ('records, 'structures, 'arities, 'rec_arity, 'kinds, 'positive,
+  type ('records, 'structures, 'arities, 'rec_group, 'kinds, 'positive,
         'negative, 'direct, 'gadts) find =
     | Find : {
           index :
             ([`Succ of 'index], 'structures, 'structure, _) selection;
           section : ([`Succ of 'index], 'records, 'section, _) Section.t;
           items :
-            ('section, 'structure, 'arities, 'rec_arity, 'kinds, 'positive,
+            ('section, 'structure, 'arities, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadts) Fields.t;
     } ->
-        ('records, 'structures, 'arities, 'rec_arity, 'kinds, 'positive,
+        ('records, 'structures, 'arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadts) find
 
   let find :
     type arities gadts .
-        ('record * 'records, 'structures, arities, 'rec_arity, 'kinds, 'positive,
+        ('record * 'records, 'structures, arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, gadts) Records.t ->
-        (('record * 'records, 'structures, arities, 'rec_arity, 'kinds, 'positive,
+        (('record * 'records, 'structures, arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, gadts) find -> 'a option) ->
         'a option =
   fun records f ->
@@ -1264,10 +1264,10 @@ module Record = struct
         ([`Succ of index], base_structures, current, tail_structures)
           selection ->
         (index, tail_section, current_section, tail) Section.t ->
-        (tail, structure * other_structures, arities, 'rec_arity,
+        (tail, structure * other_structures, arities, 'rec_group,
           'kinds, 'positive, 'negative, 'direct, gadts) Records.t ->
         (index, structure, other_structures, arities, tail_section,
-          'rec_arity, 'kinds, 'positive, 'negative, 'direct, gadts)
+          'rec_group, 'kinds, 'positive, 'negative, 'direct, gadts)
             structure_find =
     fun index section records ->
       let open Section in
@@ -1292,7 +1292,7 @@ module Record = struct
         type index subrecord subrecords substructures structure section .
         (index, 'structures, structure, substructures) selection ->
         (index, 'record * 'records, section, subrecord * subrecords) Section.t ->
-        (subrecord * subrecords, substructures, arities, 'rec_arity, 'kinds,
+        (subrecord * subrecords, substructures, arities, 'rec_group, 'kinds,
           'positive, 'negative, 'direct, gadts) Records.t ->
         'a option =
     fun index section records ->
@@ -1311,7 +1311,7 @@ module Record = struct
           begin match
             f ((Find { index; section;
               items = { field; value } :: items } :
-                ('record * 'records, 'structures, arities, 'rec_arity, 'kinds,
+                ('record * 'records, 'structures, arities, 'rec_group, 'kinds,
                   'positive, 'negative, 'direct, gadts) find ))
           with
           | None -> aux index section ({ structure; values } :: others)
@@ -1320,7 +1320,7 @@ module Record = struct
       in
     let rec start_section :
         type subrecords arities gadts .
-        (subrecords, 'structures, arities, 'rec_arity, 'kinds, 'positive,
+        (subrecords, 'structures, arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, gadts) Records.t ->
         ([`Zero], subrecords, subrecords) Section.some =
     fun records ->
@@ -1350,14 +1350,14 @@ module Constructor = struct
         (eq, map_eqs tail_a tail_b eq_tail)
 
   let rec map_choice :
-    type a_arity b_arity rec_arity a_cases b_cases structures positive
+    type a_arity b_arity rec_group a_cases b_cases structures positive
       negative direct gadt .
-    (a_arity, b_arity, rec_arity,
+    (a_arity, b_arity, rec_group,
      [> `Exists of unit] as 'kinds_a, 'kinds_b, positive,
       negative, direct, gadt) map ->
-    (a_cases, structures, a_arity, rec_arity, 'kinds_a, positive, negative,
+    (a_cases, structures, a_arity, rec_group, 'kinds_a, positive, negative,
       direct, gadt) constructors ->
-    (b_cases, structures, b_arity, rec_arity, 'kinds_b, positive, negative,
+    (b_cases, structures, b_arity, rec_group, 'kinds_b, positive, negative,
       direct, gadt) constructors ->
     a_cases binary_choice -> b_cases binary_choice =
   fun f a_constructors b_constructors a_choice ->
@@ -1391,9 +1391,9 @@ module Constructor = struct
     let map_kind :
       type structure kinds .
       ('a_arity, 'b_arity, 'subpositive, 'subnegative) M.t ->
-      ('types_a, structure, 'a_arity, M.rec_arity, kinds, 'subpositive,
+      ('types_a, structure, 'a_arity, M.rec_group, kinds, 'subpositive,
         'subnegative, 'subdirect, M.gadt) constructor_kind ->
-      ('types_b, structure, 'b_arity, M.rec_arity, kinds, 'subpositive,
+      ('types_b, structure, 'b_arity, M.rec_group, kinds, 'subpositive,
         'subnegative, 'subdirect, M.gadt) constructor_kind ->
       'types_a -> 'types_b =
     fun mapper a b values ->
@@ -1405,9 +1405,9 @@ module Constructor = struct
 
     let rec map_choice :
       type a_cases b_cases structures kinds .
-      (a_cases, structures, M.a_arity, M.rec_arity, kinds, M.positive,
+      (a_cases, structures, M.a_arity, M.rec_group, kinds, M.positive,
         M.negative, 'direct, M.gadt) constructors ->
-      (b_cases, structures, M.b_arity, M.rec_arity, kinds, M.positive,
+      (b_cases, structures, M.b_arity, M.rec_group, kinds, M.positive,
         M.negative, 'direct, M.gadt) constructors ->
       a_cases binary_choice -> b_cases binary_choice =
     fun a_constructors b_constructors a_choice ->
@@ -1448,17 +1448,17 @@ module Constructor = struct
       | _ -> .
   end
 
-  type ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+  type ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) kind =
     | Tuple :
-        ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) Tuple.t ->
-          ('types, [`Tuple of 'structures], 'arity, 'rec_arity, 'kinds,
+          ('types, [`Tuple of 'structures], 'arity, 'rec_group, 'kinds,
             'positive, 'negative, 'direct, 'gadt) kind
     | Record :
-        ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) Record.t ->
-          ('types, [`Record of 'structures], 'arity, 'rec_arity, 'kinds,
+          ('types, [`Record of 'structures], 'arity, 'rec_group, 'kinds,
             'positive, 'negative, 'direct, 'gadt) kind
 
   type ('value, 'constructor, 'arity, 'positive, 'negative, 'direct, 'values,
@@ -1485,18 +1485,18 @@ module Constructor = struct
             'subpositive, 'subnegative, 'subdirect,
             [> `Exists] as 'kinds) link
 
-  type ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+  type ('cases, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) destruct =
     | Destruct : {
           constructors :
-            ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+            ('cases, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadt) constructors;
           index : ([`Select of 'index], 'cases, 'value, _) binary_selection;
           index_desc :
             ([`Select of 'index], 'structures, 'constructor, _)
               binary_selection;
           constructor :
-            ('value, 'constructor, 'arity, 'rec_arity,
+            ('value, 'constructor, 'arity, 'rec_group,
               'kinds, 'positive, 'negative, 'direct, 'gadt) constructor;
           link :
             ('value, 'constructor, 'arity, 'positive, 'negative, 'direct,
@@ -1505,22 +1505,22 @@ module Constructor = struct
           values : 'values;
           name : string;
           kind :
-            ('values, 'structure, 'subarity, 'rec_arity, 'kinds, 'subpositive,
+            ('values, 'structure, 'subarity, 'rec_group, 'kinds, 'subpositive,
               'subnegative, 'subdirect, 'gadt) kind;
         } ->
-            ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+            ('cases, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadt) destruct
 
   let rec destruct_choice :
-    type index types structure tail_cases tail_structures arity rec_arity
+    type index types structure tail_cases tail_structures arity rec_group
       kinds positive negative direct gadt .
-    ('cases, 'structures, arity, rec_arity, kinds, positive, negative,
+    ('cases, 'structures, arity, rec_group, kinds, positive, negative,
       direct, gadt) constructors ->
     (index, 'cases, types, tail_cases) binary_selection ->
     (index, 'structures, structure, tail_structures) binary_selection ->
-    (tail_cases, tail_structures, arity, rec_arity, kinds, positive,
+    (tail_cases, tail_structures, arity, rec_group, kinds, positive,
       negative, direct, gadt) constructors ->
-    tail_cases binary_choice -> ('cases, 'structures, arity, rec_arity, kinds,
+    tail_cases binary_choice -> ('cases, 'structures, arity, rec_group, kinds,
       positive, negative, direct, gadt) destruct =
   fun constructors index index_desc subconstructors choice ->
     match subconstructors, choice with
@@ -1564,28 +1564,28 @@ module Constructor = struct
 end
 
 module Variant = struct
-  type ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+  type ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) argument =
     | None :
-        (unit, unit, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
+        (unit, unit, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct,
           'gadt)
           argument
     | Some : {
           desc :
-            ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+            ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
               'direct, 'gadt) desc;
           value : 'a;
         } ->
-          ('a * unit, 'structure * unit, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('a * unit, 'structure * unit, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) argument
 
   let rec map_choice :
     type a_cases b_cases structures .
-      ('a_arity, 'b_arity, 'rec_arity, 'kinds_a, 'kinds_b, 'positive, 'negative,
+      ('a_arity, 'b_arity, 'rec_group, 'kinds_a, 'kinds_b, 'positive, 'negative,
         'direct, 'gadt) map ->
-    (a_cases, structures, 'a_arity, 'rec_arity, 'kinds_a, 'positive, 'negative,
+    (a_cases, structures, 'a_arity, 'rec_group, 'kinds_a, 'positive, 'negative,
       'direct, 'gadt) variant_constructors ->
-    (b_cases, structures, 'b_arity, 'rec_arity, 'kinds_b, 'positive, 'negative,
+    (b_cases, structures, 'b_arity, 'rec_group, 'kinds_b, 'positive, 'negative,
       'direct, 'gadt) variant_constructors ->
     a_cases choice -> b_cases choice =
   fun f a_constructors b_constructors a_choice ->
@@ -1608,53 +1608,53 @@ module Variant = struct
         CFirst (f.f a_argument b_argument argument)
     | _ -> .
 
-  type ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+  type ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) kind =
     | Constructor : {
           name : string;
           argument :
-            ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+            ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadt) argument;
         } ->
-          ('types, [`Constr of 'structure], 'arity, 'rec_arity, 'kinds,
+          ('types, [`Constr of 'structure], 'arity, 'rec_group, 'kinds,
             'positive, 'negative, 'direct, 'gadt) kind
     | Inherit : {
           desc :
-            ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+            ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
               'direct, 'gadt) desc;
           value : 'a;
         } ->
-          ('a, [`Inherit of 'structure], 'arity, 'rec_arity, 'kinds,
+          ('a, [`Inherit of 'structure], 'arity, 'rec_group, 'kinds,
             'positive, 'negative, 'direct, 'gadt) kind
 
-  type ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+  type ('cases, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) destruct =
     | Destruct : {
           constructors :
-            ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+            ('cases, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadt) variant_constructors;
           index : ([`Succ of 'index], 'cases, 'types, _) selection;
           index_desc :
             ([`Succ of 'index], 'structures, 'structure, _) selection;
           constructor :
-            ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+            ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadt) variant_constructor;
           kind :
-            ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+            ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadt) kind;
         } ->
-            ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+            ('cases, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadt) destruct
 
   let rec destruct_choice :
     type index types structure tail_cases tail_structures .
-    ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+    ('cases, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) variant_constructors ->
     (index, 'cases, types, tail_cases) selection ->
     (index, 'structures, structure, tail_structures) selection ->
-    (tail_cases, tail_structures, 'arity, 'rec_arity, 'kinds, 'positive,
+    (tail_cases, tail_structures, 'arity, 'rec_group, 'kinds, 'positive,
       'negative, 'direct, 'gadt) variant_constructors ->
-    tail_cases choice -> ('cases, 'structures, 'arity, 'rec_arity, 'kinds,
+    tail_cases choice -> ('cases, 'structures, 'arity, 'rec_group, 'kinds,
       'positive, 'negative, 'direct, 'gadt) destruct =
   fun constructors index index_desc subconstructors choice ->
     match subconstructors, choice with
@@ -1687,10 +1687,10 @@ end
 
 module Object = struct
   module Object = struct
-    type ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+    type ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
            'direct, 'gadt) t = {
         structure :
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) object_methods;
         methods : 'types Delays.t;
       }
@@ -1700,11 +1700,11 @@ module Object = struct
 
   let rec map :
     type methods_a methods_b structures .
-      ('a_arity, 'b_arity, 'rec_arity, 'kinds_a, 'kinds_b, 'positive, 'negative,
+      ('a_arity, 'b_arity, 'rec_group, 'kinds_a, 'kinds_b, 'positive, 'negative,
         'direct, 'gadt) map ->
-    (methods_a, structures, 'a_arity, 'rec_arity, 'kinds_a, 'positive,
+    (methods_a, structures, 'a_arity, 'rec_group, 'kinds_a, 'positive,
       'negative, 'direct, 'gadt) object_methods ->
-    (methods_b, structures, 'b_arity, 'rec_arity, 'kinds_b, 'positive,
+    (methods_b, structures, 'b_arity, 'rec_group, 'kinds_b, 'positive,
       'negative, 'direct, 'gadt) object_methods ->
     methods_a Delays.t -> methods_b Delays.t =
   fun f methods_a methods_b a ->
@@ -1717,7 +1717,7 @@ module Object = struct
         map f tail_a tail_b tail
     | _ -> .
 
-  type ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+  type ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
          'direct, 'gadt) fold =
     | Fold : {
           index : ([`Succ of 'index], 'types, 'a, _) selection;
@@ -1726,25 +1726,25 @@ module Object = struct
               selection;
           name : string;
           desc :
-            ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+            ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
               'direct, 'gadt) desc;
           method_ : unit -> 'a;
         } ->
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) fold
 
   let fold
       (f :
-        ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) fold -> 'acc -> 'acc)
       (obj :
-        ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) t) acc =
     let rec aux :
       type index head head_structure subtypes substructures .
       (index, 'types, head, subtypes) selection ->
       (index, 'structures, head_structure, substructures) selection ->
-      (subtypes, substructures, 'arity, 'rec_arity, 'kinds, 'positive,
+      (subtypes, substructures, 'arity, 'rec_group, 'kinds, 'positive,
         'negative, 'direct, 'gadt) object_methods ->
       subtypes Delays.t -> 'a -> 'a =
     fun index index_structure structure values acc ->
@@ -1760,10 +1760,10 @@ module Object = struct
     aux Start Start obj.structure obj.methods acc
 
   module Method = struct
-    type ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+    type ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) t = {
         structure :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
             'direct, 'gadt) object_method;
         value : unit -> 'a;
       }
@@ -1774,39 +1774,39 @@ module Object = struct
   module Objects = Desc_vector (Object)
 
   type ('index, 'structure, 'structures, 'arities, 'tuples,
-        'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadts)
+        'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadts)
           structure_find =
     | Structure_find : {
           section : ([`Succ of 'index], 'tuples, 'section, 'others) Section.t;
           methods :
-            ('section, 'structure, 'arities, 'rec_arity, 'kinds, 'positive,
+            ('section, 'structure, 'arities, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadts) Methods.t;
           others :
-            ('others, 'structures, 'arities, 'rec_arity, 'kinds, 'positive,
+            ('others, 'structures, 'arities, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadts) Objects.t
         } ->
           ('index, 'structure, 'structures, 'arities, 'tuples,
-            'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadts)
+            'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadts)
             structure_find
 
-  type ('tuples, 'structures, 'arities, 'rec_arity, 'kinds, 'positive,
+  type ('tuples, 'structures, 'arities, 'rec_group, 'kinds, 'positive,
         'negative, 'direct, 'gadts) find =
     | Find : {
           index :
             ([`Succ of 'index], 'structures, 'structure, _) selection;
           section : ([`Succ of 'index], 'tuples, 'section, _) Section.t;
           methods :
-            ('section, 'structure, 'arities, 'rec_arity, 'kinds, 'positive,
+            ('section, 'structure, 'arities, 'rec_group, 'kinds, 'positive,
               'negative, 'direct, 'gadts) Methods.t;
     } ->
-        ('tuples, 'structures, 'arities, 'rec_arity, 'kinds, 'positive,
+        ('tuples, 'structures, 'arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadts) find
 
   let find :
     type arities gadts .
-        ('tuple * 'tuples, 'structures, arities, 'rec_arity, 'kinds, 'positive,
+        ('tuple * 'tuples, 'structures, arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, gadts) Objects.t ->
-        (('tuple * 'tuples, 'structures, arities, 'rec_arity, 'kinds, 'positive,
+        (('tuple * 'tuples, 'structures, arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, gadts) find -> 'a option) ->
         'a option =
   fun tuples f ->
@@ -1817,10 +1817,10 @@ module Object = struct
         ([`Succ of index], base_structures, current, tail_structures)
           selection ->
         (index, tail_section, current_section, tail) Section.t ->
-        (tail, structure * other_structures, arities, 'rec_arity,
+        (tail, structure * other_structures, arities, 'rec_group,
           'kinds, 'positive, 'negative, 'direct, gadts) Objects.t ->
         (index, structure, other_structures, arities, tail_section,
-          'rec_arity, 'kinds, 'positive, 'negative, 'direct, gadts)
+          'rec_group, 'kinds, 'positive, 'negative, 'direct, gadts)
             structure_find =
     fun index section tuples ->
       let open Section in
@@ -1846,7 +1846,7 @@ module Object = struct
         type index subtuple subtuples substructures structure section .
         (index, 'structures, structure, substructures) selection ->
         (index, 'tuple * 'tuples, section, subtuple * subtuples) Section.t ->
-        (subtuple * subtuples, substructures, arities, 'rec_arity, 'kinds,
+        (subtuple * subtuples, substructures, arities, 'rec_group, 'kinds,
           'positive, 'negative, 'direct, gadts) Objects.t ->
         'a option =
     fun index section objects ->
@@ -1866,7 +1866,7 @@ module Object = struct
           begin match
             f ((Find { index; section;
               methods = { structure; value } :: methods } :
-                ('tuple * 'tuples, 'structures, arities, 'rec_arity, 'kinds,
+                ('tuple * 'tuples, 'structures, arities, 'rec_group, 'kinds,
                   'positive, 'negative, 'direct, gadts) find ))
           with
           | None ->
@@ -1878,7 +1878,7 @@ module Object = struct
       in
     let rec start_section :
         type subtuples arities gadts .
-        (subtuples, 'structures, arities, 'rec_arity, 'kinds, 'positive,
+        (subtuples, 'structures, arities, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, gadts) Objects.t ->
         ([`Zero], subtuples, subtuples) Section.some =
     fun tuples ->

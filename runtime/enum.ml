@@ -25,7 +25,7 @@ let rec merge l0 l1 =
 
 let rec constructor_assoc :
   type cases structures .
-  (cases, structures, 'arity, 'rec_arity, 'kinds, 'positive,
+  (cases, structures, 'arity, 'rec_group, 'kinds, 'positive,
     'negative, 'direct, 'gadt) constructors ->
   (cases binary_choice * int option) list =
 fun constructors ->
@@ -53,24 +53,24 @@ let constructor_assoc_with_default_values constructors =
 let fold :
   type a .
   (int -> int -> int) ->
-  (a, [`RecArity of [`Name of [`Constr of 'structures]] * _],
-    'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
+  (a, [`RecGroup of [`Name of [`Constr of 'structures]] * _],
+    'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
   int =
 fun op constructors ->
   match constructors with
-  | RecArity { desc = Name { desc = Constr { constructors; _ }; _}; _ } ->
+  | RecGroup { desc = Name { desc = Constr { constructors; _ }; _}; _ } ->
       match constructor_assoc_with_default_values constructors with
       | [] -> 0
       | (_, value) :: tail ->
           List.fold_left (fun a (_, b) -> op a b) value tail
 
 type ('a, 'b) enum_structure =
-    [`RecArity of [`Name of [`Constr of 'a]] * 'b]
+    [`RecGroup of [`Name of [`Constr of 'a]] * 'b]
 
 let min :
   type a .
   (a, ('structures, _) enum_structure,
-    'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
+    'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
   int =
 fun constructors ->
   fold min constructors
@@ -78,7 +78,7 @@ fun constructors ->
 let max :
   type a .
   (a, ('structures, _) enum_structure,
-    'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
+    'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
   int =
 fun constructors ->
   fold max constructors
@@ -94,11 +94,11 @@ let check_value (v : int)
 let to_int_opt :
   type a .
   (a, ('structures, _) enum_structure,
-    'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
+    'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
   a -> int option =
 fun desc value ->
   match desc with
-  | RecArity { desc = Name { desc =
+  | RecGroup { desc = Name { desc =
       Constr { constructors; destruct; _ }; _ }; _ } ->
       Stdcompat.Option.map snd
         (Stdcompat.List.find_opt (check_choice (destruct value))
@@ -107,11 +107,11 @@ fun desc value ->
 let of_int_opt :
   type a .
   (a, ('structures, _) enum_structure,
-    'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
+    'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
   int -> a option =
 fun desc value ->
   match desc with
-  | RecArity { desc = Name { desc =
+  | RecGroup { desc = Name { desc =
       Constr { construct; constructors; _ }; _ }; _ } ->
       Stdcompat.Option.map (fun item -> construct (fst item))
         (Stdcompat.List.find_opt (check_value value)
@@ -120,11 +120,11 @@ fun desc value ->
 let to_string :
   type a .
   (a, ('structures, _) enum_structure,
-    'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
+    'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
   a -> string =
 fun desc value ->
   match desc with
-  | RecArity { desc = Name { desc =
+  | RecGroup { desc = Name { desc =
       Constr { constructors; destruct; _ }; _ }; _ } ->
       let Constructor.Destruct destruct =
         Constructor.destruct constructors (destruct value) in
@@ -132,7 +132,7 @@ fun desc value ->
 
 let rec of_string_aux :
   type cases structures .
-  (cases, structures, 'arity, 'rec_arity, 'kinds, 'positive,
+  (cases, structures, 'arity, 'rec_group, 'kinds, 'positive,
     'negative, 'direct, 'gadt) constructors ->
   string ->
   cases binary_choice option =
@@ -154,11 +154,11 @@ fun constructors value ->
 let of_string_opt :
   type a .
   (a, ('structures, _) enum_structure,
-    'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
+    'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc ->
   string -> a option =
 fun desc value ->
   match desc with
-  | RecArity { desc = Name { desc =
+  | RecGroup { desc = Name { desc =
       Constr { construct; constructors; _ }; _ }; _ } ->
       match of_string_aux constructors value with
       | None -> None

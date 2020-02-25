@@ -141,7 +141,7 @@ module type VisitS = sig
   module Visitors : VectorS with type 'a T.t = 'a Visitor.t
 
   val visit :
-      ('a, 'structure, 'arity, 'rec_arity, [< Kinds.visitable
+      ('a, 'structure, 'arity, 'rec_group, [< Kinds.visitable
              > `Array `Attributes `Bool `Bytes `Char `Constr `Float `GADT
                `Int `Int32 `Int64 `MapOpaque `Nativeint `Opaque `Record
                `String `Tuple `Variable `Variant], 'positive,
@@ -158,15 +158,15 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
   module Visitors = Vector (Visitor)
 
   let rec visit :
-    type structure a arity rec_arity positive negative direct gadt .
-      (a, structure, arity, rec_arity, [< Kinds.visitable] as 'kinds, positive,
+    type structure a arity rec_group positive negative direct gadt .
+      (a, structure, arity, rec_group, [< Kinds.visitable] as 'kinds, positive,
         negative, direct, gadt) desc -> (arity, direct) Visitors.t ->
       a Visitor.t =
   fun a_struct visitors x ->
     let open V.Applicative in
     let rec visit_variant :
       type cases structures .
-      (cases, structures, arity, rec_arity, 'kinds, positive,
+      (cases, structures, arity, rec_group, 'kinds, positive,
         negative, direct, gadt) variant_constructors ->
       cases choice Visitor.t =
     fun constructors choice ->
@@ -190,7 +190,7 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
 
     let rec visit_tuple :
       type types structures .
-      (types, structures, arity, rec_arity, 'kinds, positive, negative, direct,
+      (types, structures, arity, rec_group, 'kinds, positive, negative, direct,
         gadt) tuple_structure -> types Visitor.t =
     fun tuple types ->
       match tuple, types with
@@ -202,7 +202,7 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
 
     let rec visit_record :
       type types structures  .
-      (types, structures, arity, rec_arity, 'kinds, positive,
+      (types, structures, arity, rec_group, 'kinds, positive,
         negative, direct, gadt) record_structure ->
       types Visitor.t =
     fun tuple types ->
@@ -216,7 +216,7 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
 
     let visit_kind :
       type types structure .
-      (types, structure, arity, rec_arity, 'kinds, positive, negative, direct,
+      (types, structure, arity, rec_group, 'kinds, positive, negative, direct,
         gadt) constructor_kind -> types Visitor.t =
     fun a values ->
       match a with
@@ -225,7 +225,7 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
 
     let rec visit_constr :
       type cases structures .
-      (cases, structures, arity, rec_arity, 'kinds, positive, negative, direct,
+      (cases, structures, arity, rec_group, 'kinds, positive, negative, direct,
         gadt) constructors -> cases binary_choice Visitor.t =
     fun constructors choice ->
       match constructors, choice with
@@ -271,7 +271,7 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
           Visitors.make { f = visit } a.arguments a.transfer visitors in
         visit a.desc visitors x
     | Rec { desc; _ } -> visit desc visitors x
-    | RecArity { desc; _ } -> visit desc visitors x
+    | RecGroup { desc; _ } -> visit desc visitors x
     | Opaque _ -> pure x
     | MapOpaque -> pure x
     | SelectGADT { desc; _ } -> visit desc visitors x

@@ -145,103 +145,103 @@ type ('a, 'arity, 'attribute) typed_attribute_kind = ..
 type _ refl = ..
 
 type
-  ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
+  ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct,
     'gadt) desc =
   | Variable :
       ('index, 'arity, 'a, 'positive, 'direct) variable ->
-      ('a, [`Variable of 'index], 'arity, 'rec_arity, [> `Variable],
+      ('a, [`Variable of 'index], 'arity, 'rec_group, [> `Variable],
         'positive, _, 'direct, _) desc
   | Builtin :
       ('a, 'structure, 'kinds) builtin_desc ->
-      ('a, [`Builtin of 'structure], 'arity, 'rec_arity, 'kinds, _, _, _, _)
+      ('a, [`Builtin of 'structure], 'arity, 'rec_group, 'kinds, _, _, _, _)
         desc
   | Array :
-      ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'negative, 'positive,
+      ('a, 'structure, 'arity, 'rec_group, 'kinds, 'negative, 'positive,
         'negative, 'gadt) desc ->
-      ('a array, [`Array of 'structure], 'arity, 'rec_arity,
+      ('a array, [`Array of 'structure], 'arity, 'rec_group,
         [> `Array] as 'kinds, 'negative, 'positive, 'negative, 'gadt) desc
   | Arrow : {
         parameter :
-          ('a, 'a_structure, 'arity, 'rec_arity, 'kinds, 'negative, 'positive,
+          ('a, 'a_structure, 'arity, 'rec_group, 'kinds, 'negative, 'positive,
             'negative, 'gadt) desc;
         result :
-          ('b, 'b_structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          ('b, 'b_structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
             'positive, 'gadt) desc;
       } ->
         ('a -> 'b, [`Arrow of 'a_structure -> 'b_structure], 'arity,
-          'rec_arity, [> `Arrow] as 'kinds, 'positive, 'negative, _, 'gadt)
+          'rec_group, [> `Arrow] as 'kinds, 'positive, 'negative, _, 'gadt)
           desc
   | LabelledArrow : {
         label : string;
         optional : bool;
         parameter :
-          ('a, 'a_structure, 'arity, 'rec_arity, 'kinds, 'negative, 'positive,
+          ('a, 'a_structure, 'arity, 'rec_group, 'kinds, 'negative, 'positive,
             'negative, 'gadt) desc;
         result :
-          ('b, 'b_structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          ('b, 'b_structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
             'positive, 'gadt) desc;
         wrap : (('a -> 'b) -> 'arrow);
         unwrap : ('arrow -> ('a -> 'b));
       } ->
         ('arrow, [`LabelledArrow of 'a_structure -> 'b_structure], 'arity,
-          'rec_arity, [> `Arrow] as 'kinds, 'positive, 'negative, _, 'gadt)
+          'rec_group, [> `Arrow] as 'kinds, 'positive, 'negative, _, 'gadt)
           desc
   | Constr : {
         constructors :
-          ('cases, 'structures, 'arity, 'rec_arity, 'kinds,
+          ('cases, 'structures, 'arity, 'rec_group, 'kinds,
             'positive, 'negative, 'direct, 'gadt) constructors;
         construct : 'cases binary_choice -> 'a;
         destruct : 'a -> 'cases binary_choice;
       } ->
-        ('a, [`Constr of 'structures], 'arity, 'rec_arity,
+        ('a, [`Constr of 'structures], 'arity, 'rec_group,
           [> `Constr] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | Variant : {
         constructors :
-          ((_ * _) as 'cases, 'structures, 'arity, 'rec_arity, 'kinds,
+          ((_ * _) as 'cases, 'structures, 'arity, 'rec_group, 'kinds,
             'positive, 'negative, 'direct, 'gadt) variant_constructors;
         construct : 'cases choice -> 'a;
         destruct : 'a -> 'cases choice;
       } ->
-        ('a, [`Variant of 'structures], 'arity, 'rec_arity,
+        ('a, [`Variant of 'structures], 'arity, 'rec_group,
           [> `Variant] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | Tuple : {
         structure :
-          ((_ * (_ * _)) as 'types, 'structures, 'arity, 'rec_arity, 'kinds,
+          ((_ * (_ * _)) as 'types, 'structures, 'arity, 'rec_group, 'kinds,
             'positive, 'negative, 'direct, 'gadt) tuple_structure;
         construct : 'types -> 'a;
         destruct : 'a -> 'types;
       } ->
-        ('a, [`Tuple of 'structures], 'arity, 'rec_arity,
+        ('a, [`Tuple of 'structures], 'arity, 'rec_group,
           [> `Tuple] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | Record : {
         structure :
-          ((_ * _) as 'types, 'structures, 'arity, 'rec_arity, 'kinds,
+          ((_ * _) as 'types, 'structures, 'arity, 'rec_group, 'kinds,
             'positive, 'negative, 'direct, 'gadt) record_structure;
         construct : 'types -> 'a;
         destruct : 'a -> 'types;
       } ->
-        ('a, [`Record of 'structures], 'arity, 'rec_arity,
+        ('a, [`Record of 'structures], 'arity, 'rec_group,
           [> `Record] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | Object : {
         methods :
-          ('methods, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('methods, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) object_methods;
         construct : 'methods Delays.t -> 'a;
         destruct : 'a -> 'methods Delays.t;
       } ->
-        (< .. > as 'a, [`Object of 'structures], 'arity, 'rec_arity,
+        (< .. > as 'a, [`Object of 'structures], 'arity, 'rec_group,
           [> `Object] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | Lazy :
-      ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+      ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) desc ->
-        ('a Lazy.t, [`Lazy of 'structure], 'arity, 'rec_arity,
+        ('a Lazy.t, [`Lazy of 'structure], 'arity, 'rec_group,
           [> `Lazy] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | Apply : {
         arguments :
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'variables,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'variables,
             'gadt) vector;
         desc :
-          ('a, 'structure, 'types, 'rec_arity, 'kinds, 'subpositive,
+          ('a, 'structure, 'types, 'rec_group, 'kinds, 'subpositive,
             'subnegative, 'subdirect, 'gadt) desc;
         transfer :
           ('positive, 'negative, 'direct, 'subpositive, 'subnegative,
@@ -250,105 +250,105 @@ type
         ('a,
           [`Apply of 'structure * 'structures * 'subpositive * 'subnegative *
             'subdirect * 'variables],
-          'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt)
+          'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt)
           desc
   | Opaque : {
         desc :
-          ('a, 'structure, 'arity, 'rec_arity, Kinds.all, 'positive,
+          ('a, 'structure, 'arity, 'rec_group, Kinds.all, 'positive,
             'negative, 'direct, 'gadt) desc;
       } ->
         ('a, [`Opaque of 'structure * 'direct], 'arity,
-          'rec_arity, [> `Opaque], 'positive, 'negative, _, 'gadt) desc
+          'rec_group, [> `Opaque], 'positive, 'negative, _, 'gadt) desc
   | MapOpaque :
         ('a, [`MapOpaque of 'a], 'arity,
-          'rec_arity, [> `MapOpaque], 'positive, 'negative, _, 'gadt) desc
+          'rec_group, [> `MapOpaque], 'positive, 'negative, _, 'gadt) desc
   | Rec : {
         index :
-          ([`Succ of 'index], 'rec_arity, 'length * 'structure, _) selection;
+          ([`Succ of 'index], 'rec_group, 'length * 'structure, _) selection;
         desc :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) desc;
       } ->
-        ('a, [`Rec of 'index], 'arity, 'rec_arity, 'kinds, 'positive,
+        ('a, [`Rec of 'index], 'arity, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadt) desc
-  | RecArity : {
+  | RecGroup : {
         desc :
-          ('a, 'structure, 'arity, 'new_rec_arity, 'kinds, 'positive,
+          ('a, 'structure, 'arity, 'new_rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) desc;
 (*
-        rec_arity : ('new_rec_arity, 'new_rec_arity) rec_arity;
+        rec_group : ('new_rec_group, 'new_rec_group) rec_group;
 *)
       } ->
-          ('a, [`RecArity of 'structure * 'new_rec_arity], 'arity,
-            'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
+          ('a, [`RecGroup of 'structure * 'new_rec_group], 'arity,
+            'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | SelectGADT : {
         index : ([`Succ of 'index], 'gadt, 'sub_gadt, _) selection;
         desc :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'sub_gadt) desc;
       } ->
-        ('a, [`SelectGADT of 'structure * 'index], 'arity, 'rec_arity,
+        ('a, [`SelectGADT of 'structure * 'index], 'arity, 'rec_group,
           [> `GADT] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | SubGADT : {
         sub_gadt : ('gadt, 'sub_gadt) sub_gadt;
         desc :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'sub_gadt) desc;
       } ->
-        ('a, [`SubGADT of 'structure], 'arity, 'rec_arity,
+        ('a, [`SubGADT of 'structure], 'arity, 'rec_group,
           [> `GADT] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | Attributes : {
         attributes :
-          ('a, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('a, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) attributes;
         desc :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) desc;
       } ->
-        ('a, [`Attributes of 'structure], 'arity, 'rec_arity,
+        ('a, [`Attributes of 'structure], 'arity, 'rec_group,
           [> `Attributes] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | Name : {
         name : string;
         refl : 'a refl;
         desc :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'sub_gadt) desc;
       } ->
-        ('a, [`Name of 'structure], 'arity, 'rec_arity, 'kinds, 'positive,
+        ('a, [`Name of 'structure], 'arity, 'rec_group, 'kinds, 'positive,
          'negative, 'direct, 'sub_gadt) desc
 
-and ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('cases, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) constructors =
   | CLeaf :
-      ('types_and_eqs, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+      ('types_and_eqs, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
          'negative, 'direct, 'gadt) constructor ->
-      ('types_and_eqs ref, 'structure ref, 'arity, 'rec_arity, 'kinds,
+      ('types_and_eqs ref, 'structure ref, 'arity, 'rec_group, 'kinds,
          'positive, 'negative, 'direct, 'gadt) constructors
   | CNode : {
         zero :
-          ('cases0, 'structures0, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('cases0, 'structures0, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) constructors;
         one :
-          ('cases1, 'structures1, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('cases1, 'structures1, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) constructors;
       } ->
-        ('cases0 * 'cases1, 'structures0 * 'structures1, 'arity, 'rec_arity,
+        ('cases0 * 'cases1, 'structures0 * 'structures1, 'arity, 'rec_group,
           'kinds, 'positive, 'negative, 'direct, 'gadt) constructors
 
-and ('types_and_eqs, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+and ('types_and_eqs, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
       'negative, 'direct, 'gadt) constructor =
   | Constructor : {
         name : string;
         kind :
-          ('types, 'structure_types, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structure_types, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) constructor_kind;
         eqs : ('eqs, 'structure_eqs, 'kinds, 'gadt) constructor_eqs;
         attributes :
-          ('types, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) attributes;
       } ->
         ('types * 'eqs, [`Constructor of 'structure_types * 'structure_eqs],
-          'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt)
+          'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt)
           constructor
   | Exists : {
         name : string;
@@ -363,106 +363,106 @@ and ('types_and_eqs, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
           ('count, 'exists) length ->
           ('constraints, 'exists) gadt_constraints ->
           ('exists, 'arity, 'subarity) append ->
-          ('value, 'structure, 'subarity, 'rec_arity,
+          ('value, 'structure, 'subarity, 'rec_group,
             'kinds, 'subpositive, 'subnegative, 'subdirect, 'gadt)
               exists_construct;
         destruct :
           'value ->
-          ('count, 'constraints, 'value, 'structure, 'arity, 'rec_arity, 'kinds,
+          ('count, 'constraints, 'value, 'structure, 'arity, 'rec_group, 'kinds,
             'subpositive, 'subnegative, 'subdirect, 'gadt) exists_destruct;
     } ->
       ('value,
         [`Exists of 'index * 'count * 'structure * 'local * 'positives *
           'negatives * 'directs],
-        'arity, 'rec_arity, ([> `Exists] as 'kinds), 'positive,
+        'arity, 'rec_group, ([> `Exists] as 'kinds), 'positive,
         'negative, 'direct, 'gadt) constructor
 
-and ('value, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+and ('value, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
       'negative, 'direct, 'gadt) exists_construct =
   | ExistsConstruct : {
-        kind : ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+        kind : ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadt) constructor_kind;
         construct : 'types -> 'value;
       } ->
-        ('value, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+        ('value, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadt) exists_construct
 
-and ('count, 'constraints, 'value, 'structure, 'arity, 'rec_arity, 'kinds,
+and ('count, 'constraints, 'value, 'structure, 'arity, 'rec_group, 'kinds,
       'positive, 'negative, 'direct, 'gadt) exists_destruct =
   | ExistsDestruct : {
         exists_count : ('count, 'exists) length;
         exists : ('exists, 'arity, 'subarity) append;
         constraints : ('constraints, 'exists) gadt_constraints;
-        kind : ('types, 'structure, 'subarity, 'rec_arity, 'kinds, 'positive,
+        kind : ('types, 'structure, 'subarity, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadt) constructor_kind;
         values : 'types;
       } ->
-        ('count, 'constraints, 'value, 'structure, 'arity, 'rec_arity, 'kinds,
+        ('count, 'constraints, 'value, 'structure, 'arity, 'rec_group, 'kinds,
           'positive, 'negative, 'direct, 'gadt) exists_destruct
 
-and ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) constructor_kind =
   | CTuple :
-      ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+      ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt)
         tuple_structure ->
-      ('types, [`Tuple of 'structure], 'arity, 'rec_arity, 'kinds, 'positive,
+      ('types, [`Tuple of 'structure], 'arity, 'rec_group, 'kinds, 'positive,
         'negative, 'direct, 'gadt)
         constructor_kind
   | CRecord :
-      ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+      ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt)
         record_structure ->
-      ('types, [`Record of 'structure], 'arity, 'rec_arity, 'kinds, 'positive,
+      ('types, [`Record of 'structure], 'arity, 'rec_group, 'kinds, 'positive,
         'negative, 'direct, 'gadt)
         constructor_kind
 
-and ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt)
       tuple_structure =
   | TNil :
-      (unit, unit, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
+      (unit, unit, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct,
         'gadt) tuple_structure
   | TCons : {
         head :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
            'direct, 'gadt) desc;
         tail :
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) tuple_structure;
       } ->
-        ('a * 'types, 'structure * 'structures, 'arity, 'rec_arity,
+        ('a * 'types, 'structure * 'structures, 'arity, 'rec_group,
           'kinds, 'positive, 'negative, 'direct, 'gadt) tuple_structure
 
-and ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt)
       record_structure =
   | RNil :
-      (unit, unit, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
+      (unit, unit, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct,
         'gadt) record_structure
   | RCons : {
         head :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
             'direct, 'gadt) record_field;
         tail :
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) record_structure;
       } ->
-        ('a * 'types, 'structure * 'structures, 'arity, 'rec_arity,
+        ('a * 'types, 'structure * 'structures, 'arity, 'rec_group,
           'kinds, 'positive, 'negative, 'direct, 'gadt) record_structure
 
-and ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) record_field =
   | Mono : {
         label : string;
         desc :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
            'direct, 'gadt) desc;
         attributes :
-          ('a, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          ('a, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
             'direct, 'gadt) attributes;
       } ->
-        ('a, [`Mono of 'structure], 'arity, 'rec_arity, 'kinds, 'positive,
+        ('a, [`Mono of 'structure], 'arity, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadt) record_field
   | Poly : {
         label : string;
@@ -471,138 +471,138 @@ and ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
             'negatives, 'directs, 'subpositive, 'subnegative,
             'subdirect) subvariables;
         destruct :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'subpositive,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'subpositive,
             'subnegative, 'subdirect, 'gadt, 'count) forall_destruct;
         construct :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'subpositive,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'subpositive,
             'subnegative, 'subdirect, 'gadt, 'count) forall_construct ->
           'a
       } ->
         ('a,
           [`Poly of 'structure * 'count * 'positives * 'negatives * 'directs],
-          'arity, 'rec_arity, [> `Poly] as 'kinds, 'positive, 'negative,
+          'arity, 'rec_group, [> `Poly] as 'kinds, 'positive, 'negative,
           'direct, 'gadt) record_field
 
-and ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt, 'count) forall_construct = {
         forall_construct :
           'forall 'b 'subarity .
           ('count, 'forall) length ->
           ('forall, 'arity, 'subarity) append ->
-          ('b, 'structure, 'subarity, 'rec_arity, 'kinds, 'positive,
+          ('b, 'structure, 'subarity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) desc ->
           'b;
       }
 
-and ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'subpositive,
+and ('a, 'structure, 'arity, 'rec_group, 'kinds, 'subpositive,
       'subnegative, 'subdirect, 'gadt, 'count) forall_destruct = {
         forall_destruct :
           'forall 'subarity .
           ('count, 'forall) length ->
           ('forall, 'arity, 'subarity) append ->
-          ('a, 'structure, 'subarity, 'rec_arity, 'kinds, 'subpositive,
+          ('a, 'structure, 'subarity, 'rec_group, 'kinds, 'subpositive,
             'subnegative, 'subdirect, 'gadt) forall_destruct_result;
       }
 
-and ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) forall_destruct_result =
   | ForallDestruct : {
-        desc : ('b, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+        desc : ('b, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadt) desc;
         destruct : 'a -> 'b;
       } ->
-        ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+        ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
           'direct, 'gadt) forall_destruct_result
 
-and ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('cases, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) variant_constructors =
   | VCNil :
-      (unit, unit, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
+      (unit, unit, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct,
         'gadt) variant_constructors
   | VCCons : {
         head :
-          ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) variant_constructor;
         tail :
-          ('cases, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('cases, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) variant_constructors;
       } ->
-        ('types * 'cases, 'structure * 'structures, 'arity, 'rec_arity,
+        ('types * 'cases, 'structure * 'structures, 'arity, 'rec_group,
           'kinds, 'positive, 'negative, 'direct, 'gadt) variant_constructors
 
-and ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) variant_constructor =
   | VConstructor : {
         name : string;
         argument :
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) variant_argument;
       } ->
-        ('types, [`Constr of 'structures], 'arity, 'rec_arity, 'kinds,
+        ('types, [`Constr of 'structures], 'arity, 'rec_group, 'kinds,
           'positive, 'negative, 'direct, 'gadt) variant_constructor
   | VInherit :
-      ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+      ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) desc ->
-        ('a, [`Inherit of 'structure], 'arity, 'rec_arity, 'kinds,
+        ('a, [`Inherit of 'structure], 'arity, 'rec_group, 'kinds,
           'positive, 'negative, 'direct, 'gadt) variant_constructor
 
-and ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('types, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) variant_argument =
   | VNone :
-      (unit, unit, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
+      (unit, unit, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct,
         'gadt) variant_argument
   | VSome :
-      ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+      ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) desc ->
-        ('a * unit, 'structure * unit, 'arity, 'rec_arity, 'kinds, 'positive,
+        ('a * unit, 'structure * unit, 'arity, 'rec_group, 'kinds, 'positive,
           'negative, 'direct, 'gadt) variant_argument
 
-and ('methods, 'structures, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('methods, 'structures, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) object_methods =
   | ONil :
-      (unit, unit, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct,
+      (unit, unit, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct,
         'gadt) object_methods
   | OCons : {
         head :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) object_method;
         tail :
-          ('methods, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('methods, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) object_methods;
       } ->
-        ('a * 'methods, 'structure * 'structures, 'arity, 'rec_arity,
+        ('a * 'methods, 'structure * 'structures, 'arity, 'rec_group,
           'kinds, 'positive, 'negative, 'direct, 'gadt) object_methods
 
-and ('types, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+and ('types, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
       'direct, 'gadt) object_method =
   | OMethod : {
         name : string;
         desc :
-          ('a, 'structures, 'arity, 'rec_arity, 'kinds, 'positive,
+          ('a, 'structures, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) desc;
       } ->
-        ('a, [`Method of 'structures], 'arity, 'rec_arity, 'kinds,
+        ('a, [`Method of 'structures], 'arity, 'rec_group, 'kinds,
           'positive, 'negative, 'direct, 'gadt) object_method
 (*
   | OInherit :
-      ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+      ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
         'direct, 'gadt) desc ->
-        ('a, [`Inherit of 'structure], 'arity, 'rec_arity, 'kinds,
+        ('a, [`Inherit of 'structure], 'arity, 'rec_group, 'kinds,
           'positive, 'negative, 'direct, 'gadt) object_method
 *)
 
-and ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'variables, 'gadt)
+and ('types, 'structures, 'arity, 'rec_group, 'kinds, 'variables, 'gadt)
       vector =
-  | VNil : (unit, unit, 'arity, 'rec_arity, 'kinds, unit, 'gadt) vector
+  | VNil : (unit, unit, 'arity, 'rec_group, 'kinds, unit, 'gadt) vector
   | VCons : {
         head :
-          ('a, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
             'direct, 'gadt) desc;
         tail :
-          ('types, 'structures, 'arity, 'rec_arity, 'kinds, 'variables,
+          ('types, 'structures, 'arity, 'rec_group, 'kinds, 'variables,
             'gadt) vector;
       } ->
-        ('a * 'types, 'structure * 'structures, 'arity, 'rec_arity,
+        ('a * 'types, 'structure * 'structures, 'arity, 'rec_group,
           'kinds, ('positive * 'negative * 'direct) * 'variables, 'gadt)
           vector
 
@@ -646,7 +646,7 @@ and ('eqs, 'structure_eqs, 'kinds, 'gadt) constructor_eqs =
           ('eq * 'eqs, 'index * 'structure_eqs, [> `GADT] as 'kinds, 'gadt)
             constructor_eqs
 
-and ('a, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt)
+and ('a, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt)
       attributes = {
     typed :
       'attribute .
@@ -654,13 +654,13 @@ and ('a, 'arity, 'rec_arity, 'kinds, 'positive, 'negative, 'direct, 'gadt)
   }
 
 (*
-and ('types, 'rec_arity) rec_arity =
-  | ANil : (unit, 'rec_arity) rec_arity
+and ('types, 'rec_group) rec_group =
+  | ANil : (unit, 'rec_group) rec_group
   | ACons : {
         head : ('count, 'arity) length *
-          (_, 'structure, 'arity, 'rec_arity, 'kinds, 'positive, 'negative,
+          (_, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative,
             'direct, 'gadt) desc;
-        tail : ('types, 'rec_arity) rec_arity;
+        tail : ('types, 'rec_group) rec_group;
       } ->
-        (('count * 'structure) * 'types, 'rec_arity) rec_arity
+        (('count * 'structure) * 'types, 'rec_group) rec_group
 *)

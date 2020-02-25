@@ -14,9 +14,9 @@ module Make (Target : Metapp.ValueS) = struct
     }
 
   let rec lift :
-    type a structure arity rec_arity positive negative direct gadt .
+    type a structure arity rec_group positive negative direct gadt .
     ?hook : hook ->
-    (a, structure, arity, rec_arity, [< Kinds.liftable], positive, negative,
+    (a, structure, arity, rec_group, [< Kinds.liftable], positive, negative,
       direct, gadt) desc -> (arity, direct) Lifters.t -> a Lifter.t =
   fun ?hook desc lifters x ->
     let lift_tuple lifters tuple =
@@ -96,7 +96,7 @@ module Make (Target : Metapp.ValueS) = struct
         lift ?hook desc lifters x
     | Rec { desc; _ } ->
         lift ?hook desc lifters x
-    | RecArity { desc } ->
+    | RecGroup { desc } ->
         lift ?hook desc lifters x
     | SelectGADT { desc; _ } ->
         lift ?hook desc lifters x

@@ -24,23 +24,23 @@ type ('arity_a, 'gadt_a, 'arity_b, 'gadt_b) poly =
     }
 
 let rec compare_gen :
-  type a b structure arity_a arity_b rec_arity positive negative direct gadt_a
+  type a b structure arity_a arity_b rec_group positive negative direct gadt_a
     gadt_b .
   ?hook : hook ->
-  (a, structure, arity_a, rec_arity, [< Kinds.comparable],
+  (a, structure, arity_a, rec_group, [< Kinds.comparable],
     positive, negative, direct, gadt_a) desc ->
-  (b, structure, arity_b, rec_arity, [< Kinds.comparable],
+  (b, structure, arity_b, rec_group, [< Kinds.comparable],
     positive, negative, direct, gadt_b) desc ->
   (arity_a, gadt_a, arity_b, gadt_b) poly ->
   (arity_a, arity_b, direct) Comparers.t ->
   (a, b) Comparer.t =
 fun ?hook desc_a desc_b poly comparers ->
   let compare_tuple :
-    type a b structure arity_a arity_b rec_arity positive negative direct
+    type a b structure arity_a arity_b rec_group positive negative direct
       gadt_a gadt_b.
-  (a, structure, arity_a, rec_arity, [< Kinds.comparable],
+  (a, structure, arity_a, rec_group, [< Kinds.comparable],
     positive, negative, direct, gadt_a) Tuple.t ->
-  (b, structure, arity_b, rec_arity, [< Kinds.comparable],
+  (b, structure, arity_b, rec_group, [< Kinds.comparable],
     positive, negative, direct, gadt_b) Tuple.t ->
   (arity_a, gadt_a, arity_b, gadt_b) poly ->
   (arity_a, arity_b, direct) Comparers.t ->
@@ -59,11 +59,11 @@ fun ?hook desc_a desc_b poly comparers ->
     | None -> 0
     | Some result -> result in
   let compare_record :
-    type a b structure arity_a arity_b rec_arity positive negative direct
+    type a b structure arity_a arity_b rec_group positive negative direct
       gadt_a gadt_b.
-  (a, structure, arity_a, rec_arity, [< Kinds.comparable],
+  (a, structure, arity_a, rec_group, [< Kinds.comparable],
     positive, negative, direct, gadt_a) Record.t ->
-  (b, structure, arity_b, rec_arity, [< Kinds.comparable],
+  (b, structure, arity_b, rec_group, [< Kinds.comparable],
     positive, negative, direct, gadt_b) Record.t ->
   (arity_a, gadt_a, arity_b, gadt_b) poly ->
   (arity_a, arity_b, direct) Comparers.t ->
@@ -200,7 +200,7 @@ fun ?hook desc_a desc_b poly comparers ->
   | Rec a, Rec b ->
       let Eq = selection_functional_head a.index b.index in
       compare_gen ?hook a.desc b.desc poly comparers
-  | RecArity a, RecArity b ->
+  | RecGroup a, RecGroup b ->
       compare_gen ?hook a.desc b.desc poly comparers
   | Opaque _, Opaque _ ->
       fun _ _ -> 0

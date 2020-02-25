@@ -129,12 +129,12 @@ fun count converters ->
       }
 
 let rec convert :
-  type structure_a structure_b a_struct b_struct arity_a arity_b rec_arity_a
-    rec_arity_b kinds_a kinds_b positive_a negative_a direct_a positive_b
+  type structure_a structure_b a_struct b_struct arity_a arity_b rec_group_a
+    rec_group_b kinds_a kinds_b positive_a negative_a direct_a positive_b
     negative_b direct_b gadt_a gadt_b .
-  (a_struct, structure_a, arity_a, rec_arity_a,
+  (a_struct, structure_a, arity_a, rec_group_a,
     kinds_a, positive_a, negative_a, direct_a, gadt_a) desc ->
-  (b_struct, structure_b, arity_b, rec_arity_b,
+  (b_struct, structure_b, arity_b, rec_group_b,
     kinds_b, positive_b, negative_b, direct_b, gadt_b) desc ->
   (arity_a, arity_b) converters ->
   (gadt_a, gadt_b) eq option ->
@@ -144,9 +144,9 @@ fun a_struct b_struct converters eq_gadt x ->
     type a_types b_types structures_a structures_b
       positive_a negative_a direct_a positive_b negative_b direct_b
       gadt_a gadt_b arity_a arity_b .
-    (a_types, structures_a, arity_a, rec_arity_a,
+    (a_types, structures_a, arity_a, rec_group_a,
       kinds_a, positive_a, negative_a, direct_a, gadt_a) tuple_structure ->
-    (b_types, structures_b, arity_b, rec_arity_b,
+    (b_types, structures_b, arity_b, rec_group_b,
       kinds_b, positive_b, negative_b, direct_b, gadt_b) tuple_structure ->
     (arity_a, arity_b) converters ->
       (gadt_a, gadt_b) eq option ->
@@ -173,9 +173,9 @@ fun a_struct b_struct converters eq_gadt x ->
     (count_b, [`Absent], positive_b, negative_b, direct_b, positives_b,
       negatives_b, directs_b, subpositive_b, subnegative_b, subdirect_b)
       subvariables ->
-    (a, structure_a, arity_a, rec_arity_a, kinds_a, subpositive_a,
+    (a, structure_a, arity_a, rec_group_a, kinds_a, subpositive_a,
       subnegative_a, subdirect_a, gadt_a, count_a) forall_destruct ->
-    ((b, structure_b, arity_b, rec_arity_b,
+    ((b, structure_b, arity_b, rec_group_b,
       kinds_b, subpositive_b, subnegative_b, subdirect_b, gadt_b,
       count_b) forall_construct -> b) ->
     (arity_a, arity_b) converters ->
@@ -187,7 +187,7 @@ fun a_struct b_struct converters eq_gadt x ->
       type forall b subarity_b .
       (count_b, forall) length ->
       (forall, arity_b, subarity_b) append ->
-      (b, _, subarity_b, rec_arity_b, kinds_b, subpositive_b, subnegative_b,
+      (b, _, subarity_b, rec_group_b, kinds_b, subpositive_b, subnegative_b,
         subdirect_b, gadt_b) desc ->
       b =
     fun count subarity_b desc_b ->
@@ -209,9 +209,9 @@ fun a_struct b_struct converters eq_gadt x ->
     type a_types b_types structures_a structures_b
       positive_a negative_a direct_a positive_b negative_b direct_b
       gadt_a gadt_b arity_a arity_b .
-    (a_types, structures_a, arity_a, rec_arity_a, kinds_a, positive_a,
+    (a_types, structures_a, arity_a, rec_group_a, kinds_a, positive_a,
       negative_a, direct_a, gadt_a) record_structure ->
-    (b_types, structures_b, arity_b, rec_arity_b, kinds_b, positive_b,
+    (b_types, structures_b, arity_b, rec_group_b, kinds_b, positive_b,
       negative_b, direct_b, gadt_b) record_structure ->
     (arity_a, arity_b) converters ->
     (gadt_a, gadt_b) eq option ->
@@ -234,9 +234,9 @@ fun a_struct b_struct converters eq_gadt x ->
   let convert_kind :
     type types_a types_b arity_a arity_b structure_a structure_b
       positive_a negative_a direct_a positive_b negative_b direct_b.
-    (types_a, structure_a, arity_a, rec_arity_a, kinds_a, positive_a,
+    (types_a, structure_a, arity_a, rec_group_a, kinds_a, positive_a,
       negative_a, direct_a, gadt_a) constructor_kind ->
-    (types_b, structure_b, arity_b, rec_arity_b, kinds_b, positive_b,
+    (types_b, structure_b, arity_b, rec_group_b, kinds_b, positive_b,
       negative_b, direct_b, gadt_b) constructor_kind ->
     (arity_a, arity_b) converters ->
     (gadt_a, gadt_b) eq option ->
@@ -251,9 +251,9 @@ fun a_struct b_struct converters eq_gadt x ->
 
   let rec convert_constructor :
     type a_cases b_cases structures_a structures_b .
-    (a_cases, structures_a, arity_a, rec_arity_a, kinds_a, positive_a,
+    (a_cases, structures_a, arity_a, rec_group_a, kinds_a, positive_a,
       negative_a, direct_a, gadt_a) constructors ->
-    (b_cases, structures_b, arity_b, rec_arity_b, kinds_b, positive_b,
+    (b_cases, structures_b, arity_b, rec_group_b, kinds_b, positive_b,
       negative_b, direct_b, gadt_b) constructors ->
     a_cases binary_choice -> b_cases binary_choice =
   fun a_constructors b_constructors a_choice ->
@@ -295,9 +295,9 @@ fun a_struct b_struct converters eq_gadt x ->
 
   let rec convert_variant :
     type a_cases b_cases structures_a structures_b .
-    (a_cases, structures_a, arity_a, rec_arity_a, kinds_a, positive_a,
+    (a_cases, structures_a, arity_a, rec_group_a, kinds_a, positive_a,
       negative_a, direct_a, gadt_a) variant_constructors ->
-    (b_cases, structures_b, arity_b, rec_arity_b, kinds_b, positive_b,
+    (b_cases, structures_b, arity_b, rec_group_b, kinds_b, positive_b,
       negative_b, direct_b, gadt_b) variant_constructors ->
     a_cases choice -> b_cases choice =
   fun a_constructors b_constructors a_choice ->
@@ -326,9 +326,9 @@ fun a_struct b_struct converters eq_gadt x ->
   let rec convert_object :
     type a_types b_types structures_a structures_b
       positive_a negative_a direct_a positive_b negative_b direct_b .
-    (a_types, structures_a, arity_a, rec_arity_a, kinds_a, positive_a,
+    (a_types, structures_a, arity_a, rec_group_a, kinds_a, positive_a,
       negative_a, direct_a, gadt_a) object_methods ->
-    (b_types, structures_b, arity_b, rec_arity_b, kinds_b, positive_b,
+    (b_types, structures_b, arity_b, rec_group_b, kinds_b, positive_b,
       negative_b, direct_b, gadt_b) object_methods ->
     a_types Delays.t -> b_types Delays.t =
   fun methods_a methods_b a ->
@@ -397,7 +397,7 @@ fun a_struct b_struct converters eq_gadt x ->
       convert a.desc b.desc (Converters converters) eq_gadt x
   | Rec a, Rec b ->
       convert a.desc b.desc converters eq_gadt x
-  | RecArity a, RecArity b ->
+  | RecGroup a, RecGroup b ->
       convert a.desc b.desc converters eq_gadt x
   | Opaque a, Opaque b ->
       convert a.desc b.desc converters eq_gadt x
@@ -438,11 +438,11 @@ fun a_struct b_struct converters eq_gadt x ->
   | _ -> raise Incompatible
 
 and transfer :
-  type a structures_a arity_a rec_arity_a kinds_a variables_a gadt_a
-    b structures_b arity_b rec_arity_b kinds_b variables_b gadt_b .
-  (a, structures_a, arity_a, rec_arity_a, kinds_a, variables_a,
+  type a structures_a arity_a rec_group_a kinds_a variables_a gadt_a
+    b structures_b arity_b rec_group_b kinds_b variables_b gadt_b .
+  (a, structures_a, arity_a, rec_group_a, kinds_a, variables_a,
     gadt_a) vector ->
-  (b, structures_b, arity_b, rec_arity_b, kinds_b, variables_b,
+  (b, structures_b, arity_b, rec_group_b, kinds_b, variables_b,
     gadt_b) vector ->
   (arity_a, arity_b) converters ->
   (gadt_a, gadt_b) eq option ->

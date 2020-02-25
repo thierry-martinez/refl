@@ -9,8 +9,8 @@ end
 module Iters = Vector (Iter)
 
 let rec iter :
-  type a structure arity rec_arity positive negative direct gadt .
-  (a, structure, arity, rec_arity, 'kinds, positive, negative, direct, gadt)
+  type a structure arity rec_group positive negative direct gadt .
+  (a, structure, arity, rec_group, 'kinds, positive, negative, direct, gadt)
     desc -> (arity, direct) Iters.t -> a Iter.t =
 fun desc iters x ->
   let iter_tuple iters tuple =
@@ -91,7 +91,7 @@ fun desc iters x ->
       iter desc iters x
   | Rec { desc; _ } ->
       iter desc iters x
-  | RecArity { desc } ->
+  | RecGroup { desc } ->
       iter desc iters x
   | Opaque _ -> ()
   | MapOpaque -> ()

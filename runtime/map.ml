@@ -9,11 +9,11 @@ end
 module Mappers = SignedVector (Mapper)
 
 let rec map :
-  type structure a_struct b_struct a_arity b_arity rec_arity
+  type structure a_struct b_struct a_arity b_arity rec_group
         kinds positive negative direct gadt .
-  (a_struct, structure, a_arity, rec_arity, kinds, positive,
+  (a_struct, structure, a_arity, rec_group, kinds, positive,
     negative, direct, gadt) desc ->
-  (b_struct, structure, b_arity, rec_arity, kinds, positive,
+  (b_struct, structure, b_arity, rec_group, kinds, positive,
     negative, direct, gadt) desc ->
   (a_arity, b_arity, positive, negative) Mappers.t ->
   (a_struct, b_struct) Mapper.t =
@@ -21,7 +21,7 @@ fun a_struct b_struct mapping x ->
   let rec_map a_desc b_desc =
     map a_desc b_desc mapping in
   let module Mapper = struct
-    type nonrec rec_arity = rec_arity
+    type nonrec rec_group = rec_group
     type nonrec positive = positive
     type nonrec negative = negative
     type nonrec a_arity = a_arity
@@ -87,7 +87,7 @@ fun a_struct b_struct mapping x ->
   | Rec a, Rec b ->
       let Eq = selection_functional_head a.index b.index in
       map a.desc b.desc mapping x
-  | RecArity a, RecArity b ->
+  | RecGroup a, RecGroup b ->
       map a.desc b.desc mapping x
   | Opaque a, Opaque b ->
       map a.desc b.desc mapping x
