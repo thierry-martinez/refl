@@ -21,5 +21,5 @@ PPX deriver for reflection
   (dune (>= 1.11.0))
   (stdcompat (>= 12))
   (fix (>= 20200131))
-  metapp
-  metaquot))
+  (metapp (>= 0.1.0))
+  (metaquot (>= 0.1.0))))

@@ -8,10 +8,10 @@ end
 
 module Comparers = BinaryVector (Comparer)
 
-type hook = {
-    hook :
-      'a 'b . 'a refl -> 'b refl -> ('a, 'b) Comparer.t -> ('a, 'b) Comparer.t
-  }
+type ('a, 'b) hook_fun =
+    'a refl -> 'b refl -> (?hook : hook -> ('a, 'b) Comparer.t) ->
+      ('a, 'b) Comparer.t
+and hook = { hook : 'a 'b . ('a, 'b) hook_fun }
 
 type ('a, 'arity, 'b) typed_attribute_kind +=
   | Attribute_compare : ('a, 'arity, ('a, 'a) Comparer.t) typed_attribute_kind
@@ -198,7 +198,7 @@ fun ?hook desc_a desc_b poly comparers ->
           Mono { converters = Converters converters; eq_gadt = Eq }
       end comparers
   | Rec a, Rec b ->
-      let Eq = selection_functional_head a.index b.index in
+      let Eq = binary_selection_functional_head a.index b.index in
       compare_gen ?hook a.desc b.desc poly comparers
   | RecGroup a, RecGroup b ->
       compare_gen ?hook a.desc b.desc poly comparers
@@ -238,9 +238,10 @@ fun ?hook desc_a desc_b poly comparers ->
       end
   | Name a, Name b ->
       begin match hook with
-      | None -> compare_gen ?hook a.desc b.desc poly comparers
-      | Some { hook = f } ->
-          f a.refl b.refl (compare_gen ?hook a.desc b.desc poly comparers)
+      | None -> compare_gen a.desc b.desc poly comparers
+      | Some hook ->
+          hook.hook a.refl b.refl (fun ?(hook = hook) ->
+            compare_gen ~hook a.desc b.desc poly comparers)
       end
   | _ -> .
 

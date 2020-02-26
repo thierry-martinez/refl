@@ -264,7 +264,8 @@ type
           'rec_group, [> `MapOpaque], 'positive, 'negative, _, 'gadt) desc
   | Rec : {
         index :
-          ([`Succ of 'index], 'rec_group, 'length * 'structure, _) selection;
+          ([`Select of 'index], 'rec_group, 'length * 'structure, _)
+            binary_selection;
         desc :
           ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
             'negative, 'direct, 'gadt) desc;

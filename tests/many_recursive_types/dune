@@ -1,0 +1,4 @@
+(test
+  (name many_recursive_types)
+  (preprocess (pps refl.ppx))
+  (libraries refl))

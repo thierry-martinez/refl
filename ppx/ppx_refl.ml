@@ -12,6 +12,27 @@ let attr_opaque : (Parsetree.core_type, unit -> unit) Ppxlib.Attribute.t =
     Fun.id
 *)
 
+let rec remove_ident_prefix_opt (prefix : Longident.t) (ident : Longident.t)
+    : Longident.t option =
+  match ident with
+  | Ldot (prefix', name) ->
+      if prefix = prefix' then
+        Some (Lident name)
+      else
+        Option.map (fun new_prefix -> Longident.Ldot (new_prefix, name))
+          (remove_ident_prefix_opt prefix prefix')
+  | Lapply (a, b) ->
+      begin match
+        a, remove_ident_prefix_opt prefix a,
+        b, remove_ident_prefix_opt prefix b
+      with
+      | _, Some a, _, Some b
+      | a, None, _, Some b
+      | _, Some a, b, None -> Some (Lapply (a, b))
+      | _, None, _, None -> None
+      end
+  | Lident _ -> None
+
 let ident_of_str (x : Ast_helper.str) : Parsetree.expression =
   Ast_helper.Exp.ident ~loc:x.loc (Metapp.lid_of_str x)
 
@@ -46,6 +67,23 @@ let rec cut l =
       even :: even_tail, odd :: odd_tail
   | [even] -> [even], []
   | [] -> [], []
+
+let rec binary_of_int zero one final i length =
+  if length > 1 then
+    if i mod 2 = 0 then
+      zero (binary_of_int zero one final (i / 2) ((length + 1) / 2))
+    else
+      one (binary_of_int zero one final (i / 2) (length - (length + 1) / 2))
+  else
+    final
+
+let binary_type_of_int i length =
+  binary_of_int
+    (fun tail k -> tail [%type: [`Zero of [%t k]]])
+    (fun tail k -> tail [%type: [`One of [%t k]]])
+    Fun.id
+    i length
+    [%type: [`Start]]
 
 module ReflValue (Value : Metapp.ValueS) = struct
   include Value
@@ -142,17 +180,28 @@ module ReflValue (Value : Metapp.ValueS) = struct
 
   let cone = refl_dot "COne"
 
-  let rec binary_choice_of_int i length sequence =
-    if length > 1 then
-      if i mod 2 = 0 then
-        let tail = binary_choice_of_int (i / 2) ((length + 1)/ 2) sequence in
-        construct czero [tail]
-      else
-        let tail =
-          binary_choice_of_int (i / 2) (length - (length + 1) / 2) sequence in
-        construct cone [tail]
-    else
-      construct cend [sequence]
+  let binary_choice_of_int i length sequence =
+    binary_of_int
+      (fun tail -> construct czero [tail])
+      (fun tail -> construct cone [tail])
+      (construct cend [sequence])
+      i length
+
+  let binary_start = refl_dot "BinaryStart"
+
+  let zero = refl_dot "Zero"
+
+  let one = refl_dot "One"
+
+  let select = refl_dot "Select"
+
+  let binary_selection_of_int i length =
+    binary_of_int
+      (fun tail k -> tail (construct zero [k]))
+      (fun tail k -> tail (construct one [k]))
+      (fun k -> construct select [k])
+      i length
+      (construct binary_start [])
 
   let s_zero = refl_dot "Zero"
 
@@ -269,7 +318,7 @@ module StringIndexer = Indexer.Make (String)
 
 type context = {
     name : string;
-    rec_types : (int * type_info) StringMap.t option;
+    rec_types : (int * int * type_info) StringMap.t option;
     vars : StringIndexer.t;
     fresh_counter : int ref;
     free_var_table : free_variable StringHashtbl.t;
@@ -302,13 +351,13 @@ let var_of_core_type (ty : Parsetree.core_type) =
       Location.raise_errorf ~loc:!Ast_helper.default_loc
         "Type variable expected but '%a' found" Pprintast.core_type ty
 
-let make_index (f : 'a -> string option) (l : 'a list) :
-    (int * 'a) StringMap.t =
+let make_index (f : 'a -> string option) (l : 'a list) (count : int) :
+    (int * int * 'a) StringMap.t =
   let add_type_arg i acc arg =
     let acc =
       match f arg with
       | None -> acc
-      | Some var -> StringMap.add var (i, arg) acc in
+      | Some var -> StringMap.add var (i, count, arg) acc in
     acc in
   ListExt.fold_lefti add_type_arg StringMap.empty l
 
@@ -474,16 +523,16 @@ let structure_of_constr structure_of_type context ?rec_type
         [%type: [`RecGroup of [%t structure] * [%t rec_group_type]]],
         [%expr RecGroup { desc = [%e unwrapped_desc](*;
           rec_group = [%e rec_group_expr] *)}]
-    | Some (index, { desc_name; recursive; _ }) ->
+    | Some (index, length, { desc_name; recursive; _ }) ->
         recursive := Recursive;
         let arrow =
           [%type: [%t type_constr_of_string context.type_names.gadt
              ~args:context.gadt_args] ->
           [%t type_constr_of_string context.type_names.gadt ~args]] in
         context.rec_type_refs |> Metapp.mutate (IntSet.add index);
-        [%type: [`SubGADT of [`Rec of [%t peano_type_of_int index]]]],
+        [%type: [`SubGADT of [`Rec of [%t binary_type_of_int index length]]]],
         [%expr Refl.SubGADT (Refl.Rec {
-          index = [%e ReflValueExp.selection_of_int (succ index)];
+          index = [%e ReflValueExp.binary_selection_of_int index length];
           desc = [%e ident_of_str (Metapp.mkloc desc_name)]} :
           [%t arrow])]; in
   if type_args_regular context args then
@@ -675,6 +724,15 @@ let structure_of_builtins_or_constr structure_of_type context
     (ty : Parsetree.core_type)
     (constr : Longident.t) (args : Parsetree.core_type list)
     : Parsetree.core_type * Parsetree.expression =
+  let ty =
+    match ty.ptyp_desc with
+    | Ptyp_constr (lid, args) ->
+        begin match remove_ident_prefix_opt (Lident "Stdlib") lid.txt with
+        | None -> ty
+        | Some txt ->
+            { ty with ptyp_desc = Ptyp_constr ({ lid with txt }, args)}
+        end
+    | _ -> ty in
   match { ty with ptyp_attributes = [] } with
   | [%type: bool] | [%type: Bool.t] ->
       context.constraints |>
@@ -736,10 +794,7 @@ let structure_of_builtins_or_constr structure_of_type context
 let find_rec_type context constr =
   match context.rec_types, constr with
   | Some rec_types, Longident.Lident name ->
-      begin match StringMap.find_opt name rec_types with
-      | Some (index, type_info) -> Some (index, type_info)
-      | None -> None
-      end
+      StringMap.find_opt name rec_types
   | _ -> None
 
 let free_variable context =
@@ -1047,6 +1102,13 @@ let rec structure_of_type context (ty : Parsetree.core_type)
   | Some (_, attributes) ->
       context.constraints |>
         Metapp.mutate (Constraints.add_direct_kind "MapOpaque");
+      let typ (iterator : Ast_iterator.iterator) (ty : Parsetree.core_type) =
+        match ty.ptyp_desc with
+        | Ptyp_var _ ->
+            Location.raise_errorf ~loc:ty.ptyp_loc
+              "Variables are currently unsupported behind [@mapopaque]"
+        | _ -> Ast_iterator.default_iterator.typ iterator ty in
+      typ { Ast_iterator.default_iterator with typ } ty;
       [%type: [`MapOpaque of [%t { ty with ptyp_attributes = attributes }]]],
       [%expr Refl.MapOpaque]
   | _ ->
@@ -1938,7 +2000,9 @@ let rec_types_of_type_info (rec_flag : Asttypes.rec_flag) type_infos =
   match rec_flag with
   | Nonrecursive -> None
   | Recursive ->
-      Some (make_index (fun { td; _ } -> Some td.ptype_name.txt) type_infos)
+      let count = List.length type_infos in
+      Some (make_index (fun { td; _ } -> Some td.ptype_name.txt)
+        type_infos count)
 
 type modules = {
     desc_sig : Parsetree.signature;
@@ -1964,7 +2028,7 @@ let modules_of_type_declarations (rec_flag, tds) =
       (Constraints.union (constraints i) type_structure.constraints)
   end in
   let rec_group_type =
-    type_sequence_of_list (type_structures |> List.map begin
+    binary_type_of_list (type_structures |> List.map begin
       fun (type_structure : type_structure) : Parsetree.core_type ->
         [%type: [%t type_structure.arity_type] * [%t type_structure.structure]]
     end) in

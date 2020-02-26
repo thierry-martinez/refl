@@ -9,9 +9,8 @@ module Make (Target : Metapp.ValueS) = struct
 
   module Lifters = Vector (Lifter)
 
-  type hook = {
-      hook : 'a . 'a refl -> 'a Lifter.t -> 'a Lifter.t
-    }
+  type 'a hook_fun = 'a refl -> (?hook : hook -> 'a Lifter.t) -> 'a Lifter.t
+  and hook = { hook : 'a . 'a hook_fun }
 
   let rec lift :
     type a structure arity rec_group positive negative direct gadt .
@@ -106,8 +105,9 @@ module Make (Target : Metapp.ValueS) = struct
         lift ?hook desc lifters x
     | Name { refl; desc; _ } ->
         begin match hook with
-        | None -> lift ?hook desc lifters x
-        | Some { hook = f } -> f refl (lift ?hook desc lifters) x
+        | None -> lift desc lifters x
+        | Some hook ->
+            hook.hook refl (fun ?(hook = hook) -> lift ~hook desc lifters) x
         end
     | Opaque _ ->
         Target.extension (Metapp.mkloc "opaque", PStr [])

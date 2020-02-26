@@ -85,7 +85,7 @@ fun a_struct b_struct mapping x ->
           mapping in
       map a_desc b_desc mapping' x
   | Rec a, Rec b ->
-      let Eq = selection_functional_head a.index b.index in
+      let Eq = binary_selection_functional_head a.index b.index in
       map a.desc b.desc mapping x
   | RecGroup a, RecGroup b ->
       map a.desc b.desc mapping x

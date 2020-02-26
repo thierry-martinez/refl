@@ -141,10 +141,7 @@ module type VisitS = sig
   module Visitors : VectorS with type 'a T.t = 'a Visitor.t
 
   val visit :
-      ('a, 'structure, 'arity, 'rec_group, [< Kinds.visitable
-             > `Array `Attributes `Bool `Bytes `Char `Constr `Float `GADT
-               `Int `Int32 `Int64 `MapOpaque `Nativeint `Opaque `Record
-               `String `Tuple `Variable `Variant], 'positive,
+      ('a, 'structure, 'arity, 'rec_group, [Kinds.visitable], 'positive,
         'negative, 'direct, 'gadt) desc -> ('arity, 'direct) Visitors.t ->
       'a Visitor.t
 end

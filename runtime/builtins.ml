@@ -9,8 +9,10 @@ type unit__rec_group = (unit__arity * unit__structure) * unit
 
 type _ Refl.refl += Name_unit : unit Refl.refl
 
+type unit__kinds = [`Constr | `Name]
+
 let unit_refl :
-    (unit, unit__structure, 'arity, unit__rec_group, [> `Constr | `Name],
+    (unit, unit__structure, 'arity, unit__rec_group, [> unit__kinds],
       unit, unit, unit, unit) Refl.desc =
   Name {
     refl = Name_unit;

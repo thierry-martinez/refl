@@ -10,9 +10,27 @@ include Map
 
 include Show
 
-include Compare
+module Compare = Compare
 
-include Eq
+module Comparer = Compare.Comparer
+
+module Comparers = Compare.Comparers
+
+let compare_gen = Compare.compare_gen
+
+let compare_poly = Compare.compare_poly
+
+let compare = Compare.compare
+
+module Eq = Eq
+
+module Equaler = Eq.Equaler
+
+module Equalers = Eq.Equalers
+
+let equal_poly = Eq.equal_poly
+
+let equal = Eq.equal
 
 include Enum
 

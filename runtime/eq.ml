@@ -8,10 +8,10 @@ end
 
 module Equalers = BinaryVector (Equaler)
 
-type hook = {
-    hook :
-      'a 'b . 'a refl -> 'b refl -> ('a, 'b) Equaler.t -> ('a, 'b) Equaler.t
-  }
+type ('a, 'b) hook_fun =
+    'a refl -> 'b refl -> (?hook : hook -> ('a, 'b) Equaler.t) ->
+        ('a, 'b) Equaler.t
+and hook = { hook : 'a 'b . ('a, 'b) hook_fun }
 
 let rec equal_poly :
   type a b structure arity_a arity_b rec_group positive negative direct gadt_a
@@ -168,7 +168,7 @@ fun ?hook desc_a desc_b equalers ->
           a.transfer equalers in
       equal_poly ?hook a.desc b.desc equalers
   | Rec a, Rec b ->
-      let Eq = selection_functional_head a.index b.index in
+      let Eq = binary_selection_functional_head a.index b.index in
       equal_poly ?hook a.desc b.desc equalers
   | RecGroup a, RecGroup b ->
       equal_poly ?hook a.desc b.desc equalers
@@ -184,9 +184,10 @@ fun ?hook desc_a desc_b equalers ->
       equal_poly ?hook a.desc b.desc equalers
   | Name a, Name b ->
       begin match hook with
-      | None -> equal_poly ?hook a.desc b.desc equalers
-      | Some { hook = f } ->
-          f a.refl b.refl (equal_poly ?hook a.desc b.desc equalers)
+      | None -> equal_poly a.desc b.desc equalers
+      | Some hook ->
+          hook.hook a.refl b.refl (fun ?(hook = hook) ->
+            equal_poly ~hook a.desc b.desc equalers)
       end
   | _ -> .
 
