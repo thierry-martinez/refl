@@ -1,8 +1,6 @@
 open Desc
 
-module type TypeS = sig
-  type t
-end
+module type TypeS = Traverse.TypeS
 
 module type BinaryTypeS = sig
   type ('a, 'b) t

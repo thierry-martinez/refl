@@ -2,135 +2,8 @@ open Desc
 
 open Tools
 
-module type FunctorS = sig
-  type 'a t
-
-  val map : ('a -> 'b) -> 'a t -> 'b t
-end
-
-module type ApplicativeS = sig
-  include FunctorS
-
-  val pure : 'a -> 'a t
-
-  val apply : ('a -> 'b) t -> 'a t -> 'b t
-end
-
-module ListTraverse (Applicative : ApplicativeS) = struct
-  open Applicative
-
-  let rec traverse (f : 'a -> 'b t) (a : 'a list) : 'b list t =
-    match a with
-    | [] -> pure []
-    | hd :: tl ->
-        apply (map List.cons (f hd)) (traverse f tl)
-end
-
-module Iter : ApplicativeS with type 'a t = unit = struct
-  type 'a t = unit
-
-  let map _f () = ()
-
-  let pure _x = ()
-
-  let apply _f () = ()
-end
-
-module Map : ApplicativeS with type 'a t = 'a = struct
-  type 'a t = 'a
-
-  let map f x = f x
-
-  let pure x = x
-
-  let apply f = f
-end
-
-module type MonoidS = sig
-  type t
-
-  val zero : t
-
-  val ( + ) : t -> t -> t
-end
-
-module Reduce (Monoid : MonoidS)
-  : ApplicativeS with type 'a t = Monoid.t = struct
-  type 'a t = Monoid.t
-
-  let map _f accu =
-    accu
-
-  let pure _x =
-    Monoid.zero
-
-  let apply = Monoid.( + )
-end
-
-module ReduceT (Monoid : MonoidS) (Base : ApplicativeS)
-  : ApplicativeS with type 'a t = 'a Base.t * Monoid.t = struct
-  type 'a t = 'a Base.t * Monoid.t
-
-  let map f (x, a) =
-    (Base.map f x, a)
-
-  let pure x =
-    (Base.pure x, Monoid.zero)
-
-  let apply (f, a) (x, b) =
-    (Base.apply f x, Monoid.(a + b))
-end
-
-module EnvT (Env : TypeS) (Base : ApplicativeS)
-  : ApplicativeS with type 'a t = Env.t -> 'a Base.t = struct
-  type 'a t = Env.t -> 'a Base.t
-
-  let map f x env =
-    Base.map f (x env)
-
-  let pure x _env =
-    Base.pure x
-
-  let apply f x env =
-    Base.apply (f env) (x env)
-end
-
-module Env (Env : TypeS)
-  : ApplicativeS with type 'a t = Env.t -> unit = EnvT (Env) (Iter)
-
-module Fold (Accu : TypeS)
-  : ApplicativeS with type 'a t = Accu.t -> Accu.t = struct
-  type 'a t = Accu.t -> Accu.t
-
-  let map f x accu =
-    x accu
-
-  let pure _x accu =
-    accu
-
-  let apply f x accu =
-    x (f accu)
-end
-
-module FoldT (Accu : TypeS) (Base : ApplicativeS)
-  : ApplicativeS with type 'a t = Accu.t -> 'a Base.t * Accu.t = struct
-  type 'a t = Accu.t -> 'a Base.t * Accu.t
-
-  let map f x accu =
-    let x, accu = x accu in
-    (Base.map f x, accu)
-
-  let pure x accu =
-    Base.pure x, accu
-
-  let apply f x accu =
-    let f, accu = f accu in
-    let x, accu = x accu in
-    Base.apply f x, accu
-end
-
 module type VisitorS = sig
-  module Applicative : ApplicativeS
+  module Applicative : Traverse.Applicative.S
 
   val hook : 'a refl -> ('a -> 'a Applicative.t) -> 'a -> 'a Applicative.t
 end
@@ -195,7 +68,7 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
       | TCons a, (head, tail) ->
           apply (map (fun head tail -> (head, tail))
               (visit a.head visitors head))
-            (visit_tuple a.tail tail) in
+            (fun () -> visit_tuple a.tail tail) in
 
     let rec visit_record :
       type types structures  .
@@ -209,7 +82,7 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
           let Mono a_head = a.head in
           apply (map (fun head tail -> (head, tail))
              (visit a_head.desc visitors head))
-           (visit_record a.tail tail) in
+           (fun () -> visit_record a.tail tail) in
 
     let visit_kind :
       type types structure .
@@ -248,7 +121,7 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
     | Builtin Nativeint -> pure x
     | Builtin String -> pure x
     | Array desc ->
-        let module M = ListTraverse (V.Applicative) in
+        let module M = Traverse.List (V.Applicative) in
         map Array.of_list
           (M.traverse (visit desc visitors) (Array.to_list x))
     | Constr c ->

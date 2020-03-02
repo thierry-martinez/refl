@@ -22,4 +22,5 @@ PPX deriver for reflection
   (stdcompat (>= 12))
   (fix (>= 20200131))
   (metapp (>= 0.1.0))
-  (metaquot (>= 0.1.0))))
+  (metaquot (>= 0.1.0))
+  (traverse (>= 0.1.0))))

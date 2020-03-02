@@ -5,5 +5,4 @@
 ; -40: Type-directed constructor and field selection
 ; -56: OCaml 4.03 detects unreachable cases
   (flags -w -40-56)
-  (libraries metapp))
-
+  (libraries metapp traverse))
