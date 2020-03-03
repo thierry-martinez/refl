@@ -2,6 +2,7 @@
   (name ppx_refl)
   (public_name refl.ppx)
   (kind ppx_rewriter)
+  (ppx_runtime_libraries refl)
   (preprocess (pps metaquot.ppx))
 ; +warning 32: Unused value declaration.
 ; +warning 34: Unused type declaration.
