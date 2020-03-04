@@ -121,9 +121,9 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
     | Builtin Nativeint -> pure x
     | Builtin String -> pure x
     | Array desc ->
-        let module M = Traverse.List (V.Applicative) in
+        let module M = Traverse.List.Make (V.Applicative) in
         map Array.of_list
-          (M.traverse (visit desc visitors) (Array.to_list x))
+          (M.traverse (S O) (visit desc visitors) (Array.to_list x))
     | Constr c ->
         let x = c.destruct x in
         map c.construct (visit_constr c.constructors x)
