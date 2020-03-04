@@ -2132,6 +2132,11 @@ let extension ty : Parsetree.expression =
 
 let deriver_name = "refl"
 
+type Ppx_derivers.deriver += Refl
+
+let () =
+  Ppx_derivers.register deriver_name Refl
+
 let expr (mapper : Ast_mapper.mapper) (e : Parsetree.expression)
     : Parsetree.expression =
   let e = Ast_mapper.default_mapper.expr mapper e in
