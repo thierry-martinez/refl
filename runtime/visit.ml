@@ -144,7 +144,6 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
     | RecGroup { desc; _ } -> visit desc visitors x
     | Opaque _ -> pure x
     | MapOpaque -> pure x
-    | SelectGADT { desc; _ } -> visit desc visitors x
     | SubGADT { desc; _ } -> visit desc visitors x
     | Attributes { desc; _ } -> visit desc visitors x
     | Name n ->

@@ -206,13 +206,6 @@ fun ?hook desc_a desc_b poly comparers ->
       fun _ _ -> 0
   | MapOpaque, MapOpaque ->
       fun _ _ -> 0
-  | SelectGADT a, SelectGADT b ->
-      compare_gen ?hook a.desc b.desc begin match poly with
-      | Poly -> Poly
-      | Mono { converters; eq_gadt = Eq } ->
-          let Eq = Convert.selection a.index b.index in
-          Mono { converters; eq_gadt = Eq }
-      end comparers
   | SubGADT a, SubGADT b ->
       compare_gen ?hook a.desc b.desc begin match poly with
       | Poly -> Poly

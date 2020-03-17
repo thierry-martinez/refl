@@ -105,8 +105,7 @@ fun desc folds x acc ->
       fold desc folds x acc
   | Opaque _ -> acc
   | MapOpaque -> acc
-  | SelectGADT { desc; _ } ->
-      fold desc folds x acc  | SubGADT { desc; _ } ->
+  | SubGADT { desc; _ } ->
       fold desc folds x acc
   | Attributes { desc; _ } ->
       fold desc folds x acc

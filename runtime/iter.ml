@@ -95,8 +95,6 @@ fun desc iters x ->
       iter desc iters x
   | Opaque _ -> ()
   | MapOpaque -> ()
-  | SelectGADT { desc; _ } ->
-      iter desc iters x
   | SubGADT { desc; _ } ->
       iter desc iters x
   | Attributes { desc; _ } ->

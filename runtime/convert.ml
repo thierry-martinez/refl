@@ -415,14 +415,6 @@ fun a_struct b_struct converters eq_gadt x ->
           parameter
         |> a.unwrap x |>
         convert a.result b.result converters eq_gadt)
-  | SelectGADT a, SelectGADT b ->
-      convert a.desc b.desc converters begin
-        match eq_gadt with
-        | None -> None
-        | Some Eq ->
-            let Eq = selection a.index b.index in
-            Some Eq
-      end x
   | SubGADT a, SubGADT b ->
       convert a.desc b.desc converters begin
         match eq_gadt with

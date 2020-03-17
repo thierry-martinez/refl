@@ -127,8 +127,6 @@ fun desc printers fmt x ->
         to_list_aux desc value printers acc
     | RecGroup { desc } ->
         to_list_aux desc value printers acc
-    | SelectGADT { desc; _ } ->
-        to_list_aux desc value printers acc
     | SubGADT { desc; _ } ->
         to_list_aux desc value printers acc
     | Name { desc; _ } ->
@@ -289,8 +287,6 @@ fun desc printers fmt x ->
       Format.pp_print_string fmt "<opaque>"
   | MapOpaque ->
       Format.pp_print_string fmt "<opaque>"
-  | SelectGADT { desc; _ } ->
-      pp desc printers fmt x
   | SubGADT { desc; _ } ->
       pp desc printers fmt x
   | Attributes { attributes; desc } ->

@@ -97,8 +97,6 @@ module Make (Target : Metapp.ValueS) = struct
         lift ?hook desc lifters x
     | RecGroup { desc } ->
         lift ?hook desc lifters x
-    | SelectGADT { desc; _ } ->
-        lift ?hook desc lifters x
     | SubGADT { desc; _ } ->
         lift ?hook desc lifters x
     | Attributes { desc; _ } ->
