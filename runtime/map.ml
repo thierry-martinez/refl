@@ -107,6 +107,10 @@ fun a_struct b_struct mapping x ->
           (unwrap x
             (map b_parameter a_parameter (Mappers.reverse mapping)
             parameter)))
+  | SelectGADT { index = index_a; desc = desc_a },
+    SelectGADT { index = index_b; desc = desc_b } ->
+      let Eq = selection_functional_head index_a index_b in
+      map desc_a desc_b mapping x
   | SubGADT a, SubGADT b ->
       let Eq = sub_gadt_functional a.sub_gadt b.sub_gadt in
       map a.desc b.desc mapping x

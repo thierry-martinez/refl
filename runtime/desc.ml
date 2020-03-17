@@ -283,6 +283,14 @@ type
       } ->
           ('a, [`RecGroup of 'structure * 'new_rec_group], 'arity,
             'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
+  | SelectGADT : {
+        index : ([`Succ of 'index], 'gadt, 'sub_gadt, _) selection;
+        desc :
+          ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive,
+            'negative, 'direct, 'sub_gadt) desc;
+      } ->
+        ('a, [`SelectGADT of 'structure * 'index], 'arity, 'rec_group,
+          [> `GADT] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | SubGADT : {
         sub_gadt : ('gadt, 'sub_gadt) sub_gadt;
         desc :

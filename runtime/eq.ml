@@ -176,6 +176,8 @@ fun ?hook desc_a desc_b equalers ->
       fun _ _ -> true
   | MapOpaque _, MapOpaque _ ->
       fun _ _ -> true
+  | SelectGADT a, SelectGADT b ->
+      equal_poly ?hook a.desc b.desc equalers
   | SubGADT a, SubGADT b ->
       equal_poly ?hook a.desc b.desc equalers
   | Attributes a, Attributes b ->
