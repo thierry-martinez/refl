@@ -285,7 +285,7 @@ fun desc printers fmt x ->
       pp desc printers fmt x
   | Opaque _ ->
       Format.pp_print_string fmt "<opaque>"
-  | MapOpaque ->
+  | MapOpaque _ ->
       Format.pp_print_string fmt "<opaque>"
   | SubGADT { desc; _ } ->
       pp desc printers fmt x

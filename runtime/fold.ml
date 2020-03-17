@@ -104,7 +104,7 @@ fun desc folds x acc ->
   | RecGroup { desc } ->
       fold desc folds x acc
   | Opaque _ -> acc
-  | MapOpaque -> acc
+  | MapOpaque _ -> acc
   | SubGADT { desc; _ } ->
       fold desc folds x acc
   | Attributes { desc; _ } ->

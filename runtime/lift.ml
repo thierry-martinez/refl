@@ -109,7 +109,7 @@ module Make (Target : Metapp.ValueS) = struct
         end
     | Opaque _ ->
         Target.extension (Metapp.mkloc "opaque", PStr [])
-    | MapOpaque ->
+    | MapOpaque _ ->
         Target.extension (Metapp.mkloc "opaque", PStr [])
     | Arrow _ ->
         Target.extension (Metapp.mkloc "arrow", PStr [])

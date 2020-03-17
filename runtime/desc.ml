@@ -260,7 +260,8 @@ type
         ('a, [`Opaque of 'structure * 'direct], 'arity,
           'rec_group, [> `Opaque], 'positive, 'negative, _, 'gadt) desc
   | MapOpaque :
-        ('a, [`MapOpaque of 'a], 'arity,
+      ([`Succ of 'index], 'gadt, 'a, _) selection ->
+        ('a, [`MapOpaque of 'index], 'arity,
           'rec_group, [> `MapOpaque], 'positive, 'negative, _, 'gadt) desc
   | Rec : {
         index :

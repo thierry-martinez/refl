@@ -1100,17 +1100,15 @@ let rec structure_of_type context (ty : Parsetree.core_type)
         }] in
   match Metapp.Attr.chop "mapopaque" ty.ptyp_attributes with
   | Some (_, attributes) ->
+      let ty = { ty with ptyp_attributes = attributes } in
+      let ty = subst_free_variables (subst_type_vars context.vars.map) ty in
       context.constraints |>
         Metapp.mutate (Constraints.add_direct_kind "MapOpaque");
-      let typ (iterator : Ast_iterator.iterator) (ty : Parsetree.core_type) =
-        match ty.ptyp_desc with
-        | Ptyp_var _ ->
-            Location.raise_errorf ~loc:ty.ptyp_loc
-              "Variables are currently unsupported behind [@mapopaque]"
-        | _ -> Ast_iterator.default_iterator.typ iterator ty in
-      typ { Ast_iterator.default_iterator with typ } ty;
-      [%type: [`MapOpaque of [%t { ty with ptyp_attributes = attributes }]]],
-      [%expr Refl.MapOpaque]
+      let eq_index = !(context.eqs_counter) in
+      context.eqs_counter := succ eq_index;
+      context.rev_eqs := ty :: !(context.rev_eqs);
+      [%type: [`MapOpaque of [%t peano_type_of_int eq_index]]],
+      [%expr Refl.MapOpaque [%e ReflValueExp.selection_of_int (succ eq_index)]]
   | _ ->
       match Metapp.Attr.chop "opaque" ty.ptyp_attributes with
       | None -> transform_attr ty.ptyp_attributes

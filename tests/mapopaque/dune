@@ -1,0 +1,4 @@
+(test
+  (name mapopaque)
+  (preprocess (pps refl.ppx))
+  (libraries refl))

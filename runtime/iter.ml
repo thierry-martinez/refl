@@ -94,7 +94,7 @@ fun desc iters x ->
   | RecGroup { desc } ->
       iter desc iters x
   | Opaque _ -> ()
-  | MapOpaque -> ()
+  | MapOpaque _ -> ()
   | SubGADT { desc; _ } ->
       iter desc iters x
   | Attributes { desc; _ } ->

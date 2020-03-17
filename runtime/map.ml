@@ -91,7 +91,8 @@ fun a_struct b_struct mapping x ->
       map a.desc b.desc mapping x
   | Opaque a, Opaque b ->
       map a.desc b.desc mapping x
-  | MapOpaque, MapOpaque ->
+  | MapOpaque a, MapOpaque b ->
+      let Eq = selection_functional_head a b in
       x
   | Arrow { parameter = a_parameter; result = a_result },
     Arrow { parameter = b_parameter; result = b_result } ->

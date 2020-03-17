@@ -204,7 +204,7 @@ fun ?hook desc_a desc_b poly comparers ->
       compare_gen ?hook a.desc b.desc poly comparers
   | Opaque _, Opaque _ ->
       fun _ _ -> 0
-  | MapOpaque, MapOpaque ->
+  | MapOpaque _ , MapOpaque _ ->
       fun _ _ -> 0
   | SubGADT a, SubGADT b ->
       compare_gen ?hook a.desc b.desc begin match poly with

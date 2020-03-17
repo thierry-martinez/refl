@@ -174,7 +174,7 @@ fun ?hook desc_a desc_b equalers ->
       equal_poly ?hook a.desc b.desc equalers
   | Opaque _, Opaque _ ->
       fun _ _ -> true
-  | MapOpaque, MapOpaque ->
+  | MapOpaque _, MapOpaque _ ->
       fun _ _ -> true
   | SubGADT a, SubGADT b ->
       equal_poly ?hook a.desc b.desc equalers
