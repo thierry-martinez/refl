@@ -501,6 +501,51 @@ module ReflValuePat = ReflValue (Metapp.Pat)
 
 module ReflValueVal = ReflValue (Metapp.Value)
 
+let subst_free_variables
+    (f : Location.t -> string option -> Parsetree.core_type)
+    (ty : Parsetree.core_type) : Parsetree.core_type =
+  let typ (mapper : Ast_mapper.mapper) (ty : Parsetree.core_type)
+      : Parsetree.core_type =
+    match var_of_core_type_opt ty with
+    | None -> Ast_mapper.default_mapper.typ mapper ty
+    | Some var -> f ty.ptyp_loc var in
+  let mapper = { Ast_mapper.default_mapper with typ } in
+  mapper.typ mapper ty
+
+exception Exists of Location.t * string option
+
+let subst_type_vars_opt map _loc name =
+  Option.bind name @@ fun name ->
+  Option.bind (StringMap.find_opt name map) @@ fun index ->
+  Some (Ast_helper.Typ.var (type_arg index))
+
+let subst_type_vars map loc name =
+  match subst_type_vars_opt map loc name with
+  | None -> raise (Exists (loc, name))
+  | Some result -> result
+
+(*
+let subst_type_vars_exists map loc name =
+  match subst_type_vars_opt map loc name with
+  | None -> Ast_helper.Typ.any ()
+  | Some result -> result
+*)
+
+let instantiate_with_free accu map _loc name =
+  match name with
+  | None -> invalid_arg "subst_type_vars_with_free"
+  | Some name ->
+      match StringMap.find_opt name map with
+      | Some index -> type_constr_of_string (type_arg index)
+      | None ->
+          accu |> Metapp.mutate (StringSet.add name);
+          type_constr_of_string name
+
+let instantiate _loc var =
+  match var with
+  | None -> failwith "Not implemented: instantiate"
+  | Some var -> type_constr_of_string var
+
 let structure_of_constr structure_of_type context ?rec_type
     (constr : Longident.t) (args : Parsetree.core_type list)
     : Parsetree.core_type * Parsetree.expression =
@@ -520,121 +565,156 @@ let structure_of_constr structure_of_type context ?rec_type
         let unwrapped_desc =
           Ast_helper.Exp.ident
             (Metapp.mkloc (subst_ident refl_name constr)) in
-        [%type: [`RecGroup of [%t structure] * [%t rec_group_type]]],
-        [%expr RecGroup { desc = [%e unwrapped_desc](*;
-          rec_group = [%e rec_group_expr] *)}]
+        let t, desc =
+          [%type: [`RecGroup of [%t structure] * [%t rec_group_type]]],
+          [%expr RecGroup { desc = [%e unwrapped_desc](*;
+            rec_group = [%e rec_group_expr] *)}] in
+        let arrow =
+          [%type: [%t type_constr_of_string context.type_names.gadt
+             ~args:context.gadt_args] ->
+          [%t Ast_helper.Typ.constr
+            (Metapp.mkloc (subst_ident gadt_name constr)) args]] in
+        [%type: [`SubGADT of [%t t]]],
+        [%expr Refl.SubGADT ([%e desc] : [%t arrow])]
     | Some (index, length, { desc_name; recursive; _ }) ->
         recursive := Recursive;
         let arrow =
           [%type: [%t type_constr_of_string context.type_names.gadt
              ~args:context.gadt_args] ->
-          [%t type_constr_of_string context.type_names.gadt ~args]] in
+          [%t Ast_helper.Typ.constr
+            (Metapp.mkloc (subst_ident gadt_name constr)) args]] in
         context.rec_type_refs |> Metapp.mutate (IntSet.add index);
         [%type: [`SubGADT of [`Rec of [%t binary_type_of_int index length]]]],
         [%expr Refl.SubGADT (Refl.Rec {
           index = [%e ReflValueExp.binary_selection_of_int index length];
           desc = [%e ident_of_str (Metapp.mkloc desc_name)]} :
-          [%t arrow])]; in
-  if type_args_regular context args then
-    begin
+          [%t arrow])] in
+(*
+  let t, desc =
+    match rec_type with
+    | Some _ -> t, desc
+    | None ->
+        begin
+            let ty =
+              Ast_helper.Typ.constr (Metapp.mkloc (subst_ident gadt_name constr))
+                args in
+            let ty =
+              subst_free_variables (subst_type_vars_exists context.vars.map) ty in
+            let eq_index = !(context.eqs_counter) in
+            context.eqs_counter := succ eq_index;
+            context.rev_eqs := ty :: !(context.rev_eqs);
+            [%type: [`SelectGADT of [%t t] * [%t peano_type_of_int eq_index]]],
+            [%expr Refl.SelectGADT {
+              index = [%e ReflValueExp.selection_of_int (succ eq_index)];
+              desc = [%e desc]
+            }]
+        end in
+*)
+  let t, desc =
+    if type_args_regular context args then
+      begin
+        if rec_type = None then
+          context.constraints |> Metapp.mutate (fun constraints ->
+            args |> ListExt.fold_lefti
+              (fun i (constraints : Constraints.t) arg ->
+                Constraints.add_variable i ([(constr, i)], Direct) constraints)
+              constraints);
+        t, desc
+      end
+    else
+      let args = args |> List.map begin fun arg ->
+        let old_ref = context.constraints in
+        let old_kinds, old_variables = !old_ref in
+        let constraints' = ref (old_kinds, Constraints.Variables.bottom) in
+        let context = { context with
+          constraints = constraints';
+          origin = [];
+          selector = Direct; } in
+        let structure = structure_of_type context arg in
+        let kinds, variables = !constraints' in
+        old_ref := (kinds, old_variables);
+        structure, variables
+      end in
+      let args, variables = List.split args in
+      let args_type, args_expr = List.split args in
+      let args_type = type_sequence_of_list args_type in
+      let transfer_arguments transfer =
+        ReflValueExp.transfer_arguments_of_list
+          (List.init (StringIndexer.count context.vars) transfer) in
+      let transfer_matrix variables =
+        let transfer_positive =
+          transfer_arguments begin fun j ->
+            Constraints.Variables.make_transfer variables Right j |>
+            make_transfer [%expr Refl.Transfer] [%expr Refl.Skip] compose_expr
+          end in
+        let transfer_negative =
+          transfer_arguments begin fun j ->
+            Constraints.Variables.make_transfer variables Left j |>
+            make_transfer [%expr Refl.Transfer] [%expr Refl.Skip] compose_expr
+          end in
+        let transfer_direct =
+          transfer_arguments begin fun j ->
+            Constraints.Variables.make_transfer variables Direct j |>
+            make_transfer [%expr Refl.Transfer] [%expr Refl.Skip] compose_expr
+          end in
+        [%expr {
+          pp = [%e transfer_positive];
+          pn = [%e transfer_negative];
+          np = [%e transfer_negative];
+          nn = [%e transfer_positive];
+        }, [%e transfer_direct]] in
+      let transfer =
+        ReflValueExp.transfer_of_list (List.map transfer_matrix variables) in
+      let nb_args = List.length args in
+      let variable_types name =
+        variable_types constr nb_args name
+          (fun _ -> [%type: [`Absent]]) in
+      let subpositive = variable_types Constraints.Variables.positive_name in
+      let subnegative = variable_types Constraints.Variables.negative_name in
+      let subdirect = variable_types Constraints.Variables.direct_name in
+      let arity = StringIndexer.count context.vars in
+      let arguments = type_sequence_of_list (variables |> List.map begin
+        fun variables ->
+          let argument_positive =
+            type_sequence_of_list (List.init arity begin fun j ->
+              Constraints.Variables.make_transfer variables Right j |>
+              make_transfer [%type: [`Present]] [%type: [`Absent]] compose_type
+            end) in
+          let argument_negative =
+            type_sequence_of_list (List.init arity begin fun j ->
+              Constraints.Variables.make_transfer variables Left j |>
+              make_transfer [%type: [`Present]] [%type: [`Absent]] compose_type
+            end) in
+          let argument_direct =
+            type_sequence_of_list (List.init arity begin fun j ->
+              Constraints.Variables.make_transfer variables Direct j |>
+              make_transfer [%type: [`Present]] [%type: [`Absent]] compose_type
+            end) in
+          [%type: [%t argument_positive] * [%t argument_negative] *
+             [%t argument_direct]]
+      end) in
+      let t =
+        [%type: [`Apply of [%t t] * [%t args_type] * [%t subpositive]
+          * [%t subnegative] * [%t subdirect] * [%t arguments]]] in
+      let desc =
+        [%expr Refl.Apply {
+          arguments = [%e ReflValueExp.vector_of_list args_expr];
+          desc = [%e desc];
+          transfer = [%e transfer];
+         }] in
       if rec_type = None then
         context.constraints |> Metapp.mutate (fun constraints ->
-          args |> ListExt.fold_lefti
-            (fun i (constraints : Constraints.t) arg ->
-              Constraints.add_variable i ([(constr, i)], Direct) constraints)
+          variables |> ListExt.fold_lefti
+            (fun i (constraints : Constraints.t) variables ->
+              IntMap.fold (fun j path_set constraints ->
+                Constraints.Variables.PathSet.fold (fun (origin, selector) ->
+                  let origin = (constr, i) :: origin in
+                  Constraints.add_variable j (origin, selector)) path_set
+                  constraints)
+                variables constraints)
             constraints);
-      t, desc
-    end
-  else
-    let args = args |> List.map begin fun arg ->
-      let old_ref = context.constraints in
-      let old_kinds, old_variables = !old_ref in
-      let constraints' = ref (old_kinds, Constraints.Variables.bottom) in
-      let context = { context with
-        constraints = constraints';
-        origin = [];
-        selector = Direct; } in
-      let structure = structure_of_type context arg in
-      let kinds, variables = !constraints' in
-      old_ref := (kinds, old_variables);
-      structure, variables
-    end in
-    let args, variables = List.split args in
-    let args_type, args_expr = List.split args in
-    let args_type = type_sequence_of_list args_type in
-    let transfer_arguments transfer =
-      ReflValueExp.transfer_arguments_of_list
-        (List.init (StringIndexer.count context.vars) transfer) in
-    let transfer_matrix variables =
-      let transfer_positive =
-        transfer_arguments begin fun j ->
-          Constraints.Variables.make_transfer variables Right j |>
-          make_transfer [%expr Refl.Transfer] [%expr Refl.Skip] compose_expr
-        end in
-      let transfer_negative =
-        transfer_arguments begin fun j ->
-          Constraints.Variables.make_transfer variables Left j |>
-          make_transfer [%expr Refl.Transfer] [%expr Refl.Skip] compose_expr
-        end in
-      let transfer_direct =
-        transfer_arguments begin fun j ->
-          Constraints.Variables.make_transfer variables Direct j |>
-          make_transfer [%expr Refl.Transfer] [%expr Refl.Skip] compose_expr
-        end in
-      [%expr {
-        pp = [%e transfer_positive];
-        pn = [%e transfer_negative];
-        np = [%e transfer_negative];
-        nn = [%e transfer_positive];
-      }, [%e transfer_direct]] in
-    let transfer =
-      ReflValueExp.transfer_of_list (List.map transfer_matrix variables) in
-    let nb_args = List.length args in
-    let variable_types name =
-      variable_types constr nb_args name
-        (fun _ -> [%type: [`Absent]]) in
-    let subpositive = variable_types Constraints.Variables.positive_name in
-    let subnegative = variable_types Constraints.Variables.negative_name in
-    let subdirect = variable_types Constraints.Variables.direct_name in
-    let arity = StringIndexer.count context.vars in
-    let arguments = type_sequence_of_list (variables |> List.map begin
-      fun variables ->
-        let argument_positive =
-          type_sequence_of_list (List.init arity begin fun j ->
-            Constraints.Variables.make_transfer variables Right j |>
-            make_transfer [%type: [`Present]] [%type: [`Absent]] compose_type
-          end) in
-        let argument_negative =
-          type_sequence_of_list (List.init arity begin fun j ->
-            Constraints.Variables.make_transfer variables Left j |>
-            make_transfer [%type: [`Present]] [%type: [`Absent]] compose_type
-          end) in
-        let argument_direct =
-          type_sequence_of_list (List.init arity begin fun j ->
-            Constraints.Variables.make_transfer variables Direct j |>
-            make_transfer [%type: [`Present]] [%type: [`Absent]] compose_type
-          end) in
-        [%type: [%t argument_positive] * [%t argument_negative] *
-           [%t argument_direct]]
-    end) in
-    if rec_type = None then
-      context.constraints |> Metapp.mutate (fun constraints ->
-        variables |> ListExt.fold_lefti
-          (fun i (constraints : Constraints.t) variables ->
-            IntMap.fold (fun j path_set constraints ->
-              Constraints.Variables.PathSet.fold (fun (origin, selector) ->
-                let origin = (constr, i) :: origin in
-                Constraints.add_variable j (origin, selector)) path_set
-                constraints)
-              variables constraints)
-          constraints);
-    [%type: [`Apply of [%t t] * [%t args_type] * [%t subpositive]
-        * [%t subnegative] * [%t subdirect] * [%t arguments]]],
-    [%expr Refl.Apply {
-       arguments = [%e ReflValueExp.vector_of_list args_expr];
-       desc = [%e desc];
-       transfer = [%e transfer];
-    }]
+      t, desc in
+  t, desc
 
 let expr_of_string s =
   Ast_helper.Exp.constant (Ast_helper.Const.string s)
@@ -939,44 +1019,6 @@ let lid_of_attr_name attr_name =
 let make_arity_types arity =
   type_sequence_of_list (List.init arity
     (fun i -> type_constr_of_string (type_arg i)))
-
-let subst_free_variables
-    (f : Location.t -> string option -> Parsetree.core_type)
-    (ty : Parsetree.core_type) : Parsetree.core_type =
-  let typ (mapper : Ast_mapper.mapper) (ty : Parsetree.core_type)
-      : Parsetree.core_type =
-    match var_of_core_type_opt ty with
-    | None -> Ast_mapper.default_mapper.typ mapper ty
-    | Some var -> f ty.ptyp_loc var in
-  let mapper = { Ast_mapper.default_mapper with typ } in
-  mapper.typ mapper ty
-
-exception Exists of Location.t * string option
-
-let subst_type_vars_opt map _loc name =
-  Option.bind name @@ fun name ->
-  Option.bind (StringMap.find_opt name map) @@ fun index ->
-  Some (Ast_helper.Typ.var (type_arg index))
-
-let subst_type_vars map loc name =
-  match subst_type_vars_opt map loc name with
-  | None -> raise (Exists (loc, name))
-  | Some result -> result
-
-let instantiate_with_free accu map _loc name =
-  match name with
-  | None -> invalid_arg "subst_type_vars_with_free"
-  | Some name ->
-      match StringMap.find_opt name map with
-      | Some index -> type_constr_of_string (type_arg index)
-      | None ->
-          accu |> Metapp.mutate (StringSet.add name);
-          type_constr_of_string name
-
-let instantiate _loc var =
-  match var with
-  | None -> failwith "Not implemented: instantiate"
-  | Some var -> type_constr_of_string var
 
 let make_attributes context ty attributes : Parsetree.expression =
   let cases =
@@ -1823,19 +1865,12 @@ type type_structure = {
     rec_type_refs : IntSet.t;
   }
 
-let type_structure_of_type_info rec_types type_info =
-  let { arity; td; _ } = type_info in
-  Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
-  let context = context_of_type_declaration td rec_types in
-  let (structure, unwrapped_desc), (type_declarations, type_extensions) =
-    structure_of_type_declaration context td in
-  let arity_type = peano_type_of_int arity in
-  let type_extensions = ref type_extensions in
+let subgadt_mapper context type_extensions =
   let type_extension_count = ref 0 in
   let typ mapper t =
     match Ast_mapper.default_mapper.typ mapper t with
     | [%type: [`SubGADT of [%t? ty]]] ->
-        if !(context.eqs_counter) = 0 then
+        if context.name = "" then
           ty
         else
           t
@@ -1843,7 +1878,7 @@ let type_structure_of_type_info rec_types type_info =
   let expr mapper e =
     match Ast_mapper.default_mapper.expr mapper e with
     | [%expr Refl.SubGADT ([%e? desc] : [%t? base] -> [%t? sub])] ->
-        if !(context.eqs_counter) = 0 then
+        if context.name = "" then
           desc
         else
           let index = !type_extension_count in
@@ -1875,7 +1910,17 @@ let type_structure_of_type_info rec_types type_info =
               Refl.sub_gadt_ext = [%e constructor.exp];
               sub_gadt_functional }}]
     | e -> e in
-  let mapper = { Ast_mapper.default_mapper with typ; expr } in
+  { Ast_mapper.default_mapper with typ; expr }
+
+let type_structure_of_type_info rec_types type_info =
+  let { arity; td; _ } = type_info in
+  Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
+  let context = context_of_type_declaration td rec_types in
+  let (structure, unwrapped_desc), (type_declarations, type_extensions) =
+    structure_of_type_declaration context td in
+  let arity_type = peano_type_of_int arity in
+  let type_extensions = ref type_extensions in
+  let mapper = subgadt_mapper context type_extensions in
   let unwrapped_desc = mapper.expr mapper unwrapped_desc in
   let structure = mapper.typ mapper structure in
   let declarations = [
@@ -2114,6 +2159,8 @@ let extension ty : Parsetree.expression =
   let arity = StringSet.cardinal names + anonymous in
   let context = make_context "" None [] (StringIndexer.of_fresh arity) in
   let _structure, expr = structure_of_type context ty in
+  let mapper = subgadt_mapper context (ref []) in
+  let expr = mapper.expr mapper expr in
   let expr =
     match !(context.free_vars) with
     | [] -> expr

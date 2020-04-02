@@ -264,7 +264,15 @@ fun a_struct b_struct converters eq_gadt x ->
         COne (convert_constructor a.one b.one a_choice)
     | CLeaf (Constructor a), CLeaf (Constructor b), CEnd (values, eqs) ->
         begin match eq_gadt with
-        | None -> raise Incompatible
+        | None ->
+            begin
+              match b.eqs with
+              | ENil ->
+                  CEnd (
+                    convert_kind a.kind b.kind converters None values,
+                    ())
+              | ECons _ -> raise Incompatible
+            end
         | Some Eq ->
             let eqs = convert_eqs a.eqs b.eqs eqs in
             CEnd (convert_kind a.kind b.kind converters (Some Eq) values, eqs)
@@ -431,11 +439,18 @@ fun a_struct b_struct converters eq_gadt x ->
             let Eq = sub_gadt_functional a.sub_gadt b.sub_gadt in
             Some Eq
       end x
+  | SubGADT a, b ->
+      convert a.desc b converters None x
+  | a, SubGADT b ->
+      convert a b.desc converters None x
   | Name a, _ ->
       convert a.desc b_struct converters eq_gadt x
   | _, Name b ->
       convert a_struct b.desc converters eq_gadt x
-  | _ -> raise Incompatible
+  | _ ->
+      Printf.eprintf "Constr %d %d\n" (Obj.tag (Obj.repr a_struct))
+        (Obj.tag (Obj.repr b_struct));
+      raise Incompatible
 
 and transfer :
   type a structures_a arity_a rec_group_a kinds_a variables_a gadt_a
@@ -455,7 +470,9 @@ fun arguments_a arguments_b converters eq_gadt ->
         convert b.head a.head (reverse converters)
          begin match eq_gadt with None -> None | Some Eq -> Some Eq end) ::
       transfer a.tail b.tail converters eq_gadt
-  | _ -> raise Incompatible
+  | _ ->
+      Printf.eprintf "Transfer\n";
+      raise Incompatible
 
 let cast a b x =
   convert a b (SameArity Eq) (Some Eq) x

@@ -35,10 +35,11 @@ fun structures fields ->
             end
         | Some (F (desc, value)) ->
             match Convert.cast desc head.desc value with
+(*
             | exception Convert.Incompatible ->
                 invalid_arg
                   (Printf.sprintf "make: invalid value type for field '%s'"
-                     head.label);
+                     head.label);*)
             | value -> value in
       head, make_fields tail fields
 

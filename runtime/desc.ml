@@ -290,7 +290,7 @@ type
             'negative, 'direct, 'sub_gadt) desc;
       } ->
         ('a, [`SelectGADT of 'structure * 'index], 'arity, 'rec_group,
-          [> `GADT] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
+          'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | SubGADT : {
         sub_gadt : ('gadt, 'sub_gadt) sub_gadt;
         desc :
@@ -298,7 +298,7 @@ type
             'negative, 'direct, 'sub_gadt) desc;
       } ->
         ('a, [`SubGADT of 'structure], 'arity, 'rec_group,
-          [> `GADT] as 'kinds, 'positive, 'negative, 'direct, 'gadt) desc
+          'kinds, 'positive, 'negative, 'direct, 'gadt) desc
   | Attributes : {
         attributes :
           ('a, 'arity, 'rec_group, 'kinds, 'positive,
