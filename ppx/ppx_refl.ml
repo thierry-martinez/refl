@@ -1051,6 +1051,17 @@ let make_attributes context ty attributes : Parsetree.expression =
                   Refl.typed_attribute_kind ->
                 __attribute option])] }]
 
+let transform_attr context structure desc (ty : Parsetree.core_type) =
+  match ty.ptyp_attributes with
+  | [] -> structure, desc
+  | attr ->
+      let attributes = make_attributes context ty attr in
+      [%type: [`Attributes of [%t structure]]],
+      [%expr Refl.Attributes {
+          attributes = [%e attributes];
+          desc = [%e desc];
+        }]
+
 let rec structure_of_type context (ty : Parsetree.core_type)
     : Parsetree.core_type * Parsetree.expression =
   Ast_helper.with_default_loc ty.ptyp_loc @@ fun () ->
@@ -1128,44 +1139,40 @@ let rec structure_of_type context (ty : Parsetree.core_type)
         structure_of_type context ty
     | _ ->
         Location.raise_errorf ~loc:!Ast_helper.default_loc "Unsupported type" in
-  let transform_attr (attr : Parsetree.attributes) =
-    let ty = { ty with ptyp_attributes = attr } in
-    match attr with
-    | [] -> transform ty
-    | _ ->
-        let structure, desc = transform ty in
-        let attributes = make_attributes context ty attr in
-        [%type: [`Attributes of [%t structure]]],
-        [%expr Refl.Attributes {
-          attributes = [%e attributes];
-          desc = [%e desc];
-        }] in
-  match Metapp.Attr.chop "mapopaque" ty.ptyp_attributes with
+  match Metapp.Attr.chop "opaque" ty.ptyp_attributes with
   | Some (_, attributes) ->
       let ty = { ty with ptyp_attributes = attributes } in
       let ty = subst_free_variables (subst_type_vars context.vars.map) ty in
       context.constraints |>
-        Metapp.mutate (Constraints.add_direct_kind "MapOpaque");
+        Metapp.mutate (Constraints.add_direct_kind "Opaque");
       let eq_index = !(context.eqs_counter) in
       context.eqs_counter := succ eq_index;
       context.rev_eqs := ty :: !(context.rev_eqs);
-      [%type: [`MapOpaque of [%t peano_type_of_int eq_index]]],
-      [%expr Refl.MapOpaque [%e ReflValueExp.selection_of_int (succ eq_index)]]
+      let structure =
+        [%type: [`Opaque of [%t peano_type_of_int eq_index]]] in
+      let desc =
+        [%expr Refl.Opaque
+          [%e ReflValueExp.selection_of_int (succ eq_index)]] in
+      transform_attr context structure desc ty
   | _ ->
-      match Metapp.Attr.chop "opaque" ty.ptyp_attributes with
-      | None -> transform_attr ty.ptyp_attributes
+      match Metapp.Attr.chop "mapopaque" ty.ptyp_attributes with
+      | None ->
+          let structure, desc = transform ty in
+          transform_attr context structure desc ty
       | Some (_, attributes) ->
           context.constraints |>
-            Metapp.mutate (Constraints.add_direct_kind "Opaque");
+            Metapp.mutate (Constraints.add_direct_kind "MapOpaque");
           let kinds = fst !(context.constraints) in
-          let structure, desc = transform_attr attributes in
+          let ty = { ty with ptyp_attributes = attributes } in
+          let structure, desc = transform ty in
+          let structure, desc = transform_attr context structure desc ty in
           context.constraints := (kinds, snd !(context.constraints));
           let variable_count = StringIndexer.count context.vars in
           let variables = snd !(context.constraints) in
           let direct_type =
             make_variables variable_count variables Direct [%type: unit] in
-          [%type: [`Opaque of [%t structure] * [%t direct_type]]],
-          [%expr Refl.Opaque { desc = [%e desc] }]
+          [%type: [`MapOpaque of [%t structure] * [%t direct_type]]],
+          [%expr Refl.MapOpaque { desc = [%e desc] }]
 
 let fold_free_variables
     (f : Location.t -> string option -> 'acc -> 'acc)

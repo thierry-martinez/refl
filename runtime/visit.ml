@@ -143,8 +143,8 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
         visit a.desc visitors x
     | Rec { desc; _ } -> visit desc visitors x
     | RecGroup { desc; _ } -> visit desc visitors x
-    | Opaque _ -> pure x
     | MapOpaque _ -> pure x
+    | Opaque _ -> pure x
     | SelectGADT { desc; _ } -> visit desc visitors x
     | SubGADT { desc; _ } -> visit desc visitors x
     | Attributes { desc; _ } -> visit desc visitors x

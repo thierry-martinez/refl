@@ -285,9 +285,9 @@ fun desc printers fmt x ->
       pp desc printers fmt x
   | RecGroup { desc } ->
       pp desc printers fmt x
-  | Opaque _ ->
-      Format.pp_print_string fmt "<opaque>"
   | MapOpaque _ ->
+      Format.pp_print_string fmt "<opaque>"
+  | Opaque _ ->
       Format.pp_print_string fmt "<opaque>"
   | SelectGADT { desc; _ } ->
       pp desc printers fmt x

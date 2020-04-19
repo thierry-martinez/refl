@@ -11,7 +11,7 @@ let () =
 *)
 
 let () =
-  let refl = [%refl: ('a -> 'a) [@opaque]] in
+  let refl = [%refl: ('a -> 'a) [@mapopaque]] in
   assert (Refl.compare refl [None] succ pred = 0);
   ()
 

@@ -127,7 +127,7 @@ module Kinds = struct
       [builtin | structural_without_object | `Variable | `Lazy | `GADT
       | `Exists | `Absent ]
 
-  type comparable = [strictly_liftable | `Object | `Opaque | `MapOpaque ]
+  type comparable = [strictly_liftable | `Object | `MapOpaque | `Opaque ]
 
   type arrow = [`Arrow | `Labelled_arrow]
 
@@ -135,7 +135,7 @@ module Kinds = struct
 
   type visitable =
       [builtin | structural_without_object | `Variable | `GADT
-      | `Opaque | `MapOpaque ]
+      | `MapOpaque | `Opaque ]
 
   type all = [liftable | `Present]
 end
@@ -252,17 +252,17 @@ type
             'subdirect * 'variables],
           'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct, 'gadt)
           desc
-  | Opaque : {
+  | MapOpaque : {
         desc :
           ('a, 'structure, 'arity, 'rec_group, Kinds.all, 'positive,
             'negative, 'direct, 'gadt) desc;
       } ->
-        ('a, [`Opaque of 'structure * 'direct], 'arity,
-          'rec_group, [> `Opaque], 'positive, 'negative, _, 'gadt) desc
-  | MapOpaque :
-      ([`Succ of 'index], 'gadt, 'a, _) selection ->
-        ('a, [`MapOpaque of 'index], 'arity,
+        ('a, [`MapOpaque of 'structure * 'direct], 'arity,
           'rec_group, [> `MapOpaque], 'positive, 'negative, _, 'gadt) desc
+  | Opaque :
+      ([`Succ of 'index], 'gadt, 'a, _) selection ->
+        ('a, [`Opaque of 'index], 'arity,
+          'rec_group, [> `Opaque], 'positive, 'negative, _, 'gadt) desc
   | Rec : {
         index :
           ([`Select of 'index], 'rec_group, 'length * 'structure, _)

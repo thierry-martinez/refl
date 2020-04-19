@@ -407,8 +407,15 @@ fun a_struct b_struct converters eq_gadt x ->
       convert a.desc b.desc converters eq_gadt x
   | RecGroup a, RecGroup b ->
       convert a.desc b.desc converters eq_gadt x
-  | Opaque a, Opaque b ->
+  | MapOpaque a, MapOpaque b ->
       convert a.desc b.desc converters eq_gadt x
+  | Opaque a, Opaque b ->
+      begin match eq_gadt with
+      | None -> raise Incompatible
+      | Some Eq ->
+          let Eq = selection a b in
+          x
+      end
   | Arrow a, Arrow b ->
       (fun parameter ->
         convert b.parameter a.parameter (reverse converters)

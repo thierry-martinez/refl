@@ -172,9 +172,9 @@ fun ?hook desc_a desc_b equalers ->
       equal_poly ?hook a.desc b.desc equalers
   | RecGroup a, RecGroup b ->
       equal_poly ?hook a.desc b.desc equalers
-  | Opaque _, Opaque _ ->
-      fun _ _ -> true
   | MapOpaque _, MapOpaque _ ->
+      fun _ _ -> true
+  | Opaque _, Opaque _ ->
       fun _ _ -> true
   | SelectGADT a, SelectGADT b ->
       equal_poly ?hook a.desc b.desc equalers

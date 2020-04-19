@@ -109,9 +109,9 @@ module Make (Target : Metapp.ValueS) = struct
         | Some hook ->
             hook.hook refl (fun ?(hook = hook) -> lift ~hook desc lifters) x
         end
-    | Opaque _ ->
-        Target.extension (Metapp.mkloc "opaque", PStr [])
     | MapOpaque _ ->
+        Target.extension (Metapp.mkloc "opaque", PStr [])
+    | Opaque _ ->
         Target.extension (Metapp.mkloc "opaque", PStr [])
     | Arrow _ ->
         Target.extension (Metapp.mkloc "arrow", PStr [])

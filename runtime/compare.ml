@@ -202,9 +202,9 @@ fun ?hook desc_a desc_b poly comparers ->
       compare_gen ?hook a.desc b.desc poly comparers
   | RecGroup a, RecGroup b ->
       compare_gen ?hook a.desc b.desc poly comparers
-  | Opaque _, Opaque _ ->
+  | MapOpaque _, MapOpaque _ ->
       fun _ _ -> 0
-  | MapOpaque _ , MapOpaque _ ->
+  | Opaque _ , Opaque _ ->
       fun _ _ -> 0
   | SelectGADT a, SelectGADT b ->
       compare_gen ?hook a.desc b.desc begin match poly with
