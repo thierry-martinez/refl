@@ -122,10 +122,9 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
     | Builtin String -> pure x
     | Array desc ->
         let module M =
-          Traverse.Primitives.List (V.Applicative)
-            (Traverse.Arity.A1) in
+          Traverse.Primitives.List.Make (V.Applicative) in
         map Array.of_list
-          (M.traverse (visit desc visitors) (Array.to_list x))
+          (M.traverse (S O) (visit desc visitors) (Array.to_list x))
     | Constr c ->
         let x = c.destruct x in
         map c.construct (visit_constr c.constructors x)
