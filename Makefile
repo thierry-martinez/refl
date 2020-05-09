@@ -18,6 +18,6 @@ install :
 doc :
 	$(DUNE) build @doc $(FLAGS)
 
-.PHONY : tests
-tests :
+.PHONY : test
+test :
 	$(DUNE) runtest $(FLAGS)
