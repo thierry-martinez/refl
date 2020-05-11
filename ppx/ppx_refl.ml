@@ -2197,35 +2197,13 @@ let expr (mapper : Ast_mapper.mapper) (e : Parsetree.expression)
       extension (Metapp.Typ.of_payload payload)
   | _ -> e
 
-let get_derivers (attributes : Parsetree.attributes)
-    : Parsetree.expression list =
-  match Metapp.Attr.find "deriving" attributes with
-  | None -> []
-  | Some derivers ->
-      let derivers = Metapp.Exp.of_payload (Metapp.Attr.payload derivers) in
-      match derivers.pexp_desc with
-      | Pexp_tuple derivers -> derivers
-      | _ -> [derivers]
-
-let has_deriver (attributes : Parsetree.attributes) : bool =
-  get_derivers attributes |> List.exists (fun (e : Parsetree.expression) ->
-    match e.pexp_desc with
-    | Pexp_ident { txt = Lident name } ->
-        String.equal name deriver_name
-    | _ -> false)
-
-let declarations_has_deriver (declarations : Parsetree.type_declaration list)
-    : bool =
-  declarations |> List.exists (fun (decl : Parsetree.type_declaration) ->
-    has_deriver decl.ptype_attributes)
-
 let signature (mapper : Ast_mapper.mapper) (s : Parsetree.signature)
     : Parsetree.signature =
   let s = Ast_mapper.default_mapper.signature mapper s in
   s |> List.concat_map (fun (item : Parsetree.signature_item) ->
     match item.psig_desc with
     | Psig_type (rec_flag, type_declarations)
-      when declarations_has_deriver type_declarations ->
+      when Metapp.Type.has_deriver deriver_name type_declarations <> None ->
         item :: make_sig ~loc:item.psig_loc (rec_flag, type_declarations)
     | _ -> [item])
 
@@ -2235,7 +2213,7 @@ let structure (mapper : Ast_mapper.mapper) (s : Parsetree.structure)
   s |> List.concat_map (fun (item : Parsetree.structure_item) ->
     match item.pstr_desc with
     | Pstr_type (rec_flag, type_declarations)
-      when declarations_has_deriver type_declarations ->
+      when Metapp.Type.has_deriver deriver_name type_declarations <> None ->
         item :: make_str ~loc:item.pstr_loc (rec_flag, type_declarations)
     | _ -> [item])
 
