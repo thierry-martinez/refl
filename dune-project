@@ -19,8 +19,8 @@ PPX deriver for reflection
  (depends
   (ocaml (and (>= 4.03.0) (< 4.12.0)))
   (dune (>= 1.11.0))
-  (stdcompat (>= 12))
+  (stdcompat (>= 14))
   (fix (>= 20200131))
-  (metapp (>= 0.1.0))
-  (metaquot (>= 0.1.0))
-  (traverse (>= 0.1.0))))
+  (metapp (>= 0.2.0))
+  (metaquot (>= 0.2.0))
+  (traverse (>= 0.2.0))))
