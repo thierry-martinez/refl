@@ -93,6 +93,28 @@ fun selection selection' ->
       | Equal Eq -> Equal Eq
       | GreaterThan -> GreaterThan
 
+
+let rec int_of_selection :
+  type index sequence head tail .
+  ?start:int -> (index, sequence, head, tail) selection -> int =
+fun ?(start = 0) selection ->
+  match selection with
+  | Start -> start
+  | Next selection -> int_of_selection ~start:(succ start) selection
+
+let rec int_of_binary_selection :
+  type index sequence head tail .
+  ?start:int -> (index, sequence, head, tail) binary_selection -> int =
+fun ?(start = 0) selection ->
+  match selection with
+  | BinaryStart -> start
+  | Zero selection ->
+      int_of_binary_selection ~start:(start * 2) selection
+  | One selection ->
+      int_of_binary_selection ~start:(start * 2 + 1) selection
+  | Select selection ->
+      int_of_binary_selection ~start selection
+
 let rec selection_functional_tail :
     type index sequence head tail head' tail' .
     (index, sequence, head, tail) selection ->

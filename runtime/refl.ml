@@ -32,6 +32,10 @@ let equal_poly = Eq.equal_poly
 
 let equal = Eq.equal
 
+module Hash = Hash
+
+let hash = Hash.hash
+
 include Enum
 
 include Iter
