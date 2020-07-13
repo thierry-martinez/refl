@@ -137,7 +137,7 @@ module Kinds = struct
       [builtin | structural_without_object | `Variable | `GADT
       | `MapOpaque | `Opaque ]
 
-  type all = [liftable | `Present]
+  type all = [liftable | `Present | `Poly]
 end
 
 type ('a, 'arity, 'attribute) typed_attribute_kind = ..
