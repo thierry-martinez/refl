@@ -866,6 +866,8 @@ let structure_of_builtins_or_constr structure_of_type context
   | [%type: [%t? _] ref] ->
       structure_of_constr structure_of_type context (builtins_dot "ref") args
   | [%type: [%t? ty] Lazy.t] ->
+      context.constraints |>
+        Metapp.mutate (Constraints.add_direct_kind "Lazy");
       let ty, desc = structure_of_type context ty in
       [%type: [`Lazy of [%t ty]]], [%expr Refl.Lazy [%e desc]]
   | _ ->
