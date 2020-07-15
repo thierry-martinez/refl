@@ -1,4 +1,4 @@
-# v0.1.1 - 2020-07-13
+# v0.1.1 - 2020-07-15
 - Add: Refl.hash provides an hash function for every comparable structure.
 
 - Fix: lazy structure were not annotated with `Lazy kind.
