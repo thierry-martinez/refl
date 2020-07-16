@@ -9,7 +9,7 @@
 (homepage "https://github.com/thierry-martinez/refl")
 (bug_reports "https://github.com/thierry-martinez/refl")
 (documentation "https://github.com/thierry-martinez/refl")
-(version "0.1.1")
+(version "0.2.0")
 
 (package
  (name refl)
