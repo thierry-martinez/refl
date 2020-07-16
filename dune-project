@@ -24,4 +24,5 @@ PPX deriver for reflection
   (fix (>= 20200131))
   (metapp (>= 0.2.0))
   (metaquot (>= 0.2.0))
-  (traverse (>= 0.2.0))))
+  (traverse (>= 0.2.0))
+  (odoc (and :with-doc (>= 1.5.1)))))
