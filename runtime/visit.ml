@@ -150,5 +150,9 @@ with type 'a Visitor.t = 'a -> 'a V.Applicative.t = struct
     | Attributes { desc; _ } -> visit desc visitors x
     | Name n ->
         V.hook n.refl (visit n.desc visitors) x
+    | Lazy desc ->
+        let module M =
+          Traverse.Primitives.Lazy.Make (V.Applicative) in
+        M.traverse (S O) (visit desc visitors) x
     | _ -> .
 end

@@ -134,7 +134,7 @@ module Kinds = struct
   type liftable = [comparable | arrow ]
 
   type visitable =
-      [builtin | structural_without_object | `Variable | `GADT
+      [builtin | structural_without_object | `Variable | `Lazy | `GADT
       | `MapOpaque | `Opaque ]
 
   type all = [liftable | `Present | `Poly]
