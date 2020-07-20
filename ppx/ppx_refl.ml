@@ -2139,7 +2139,8 @@ let make_str ~loc type_declarations : Parsetree.structure =
   Ast_helper.with_default_loc loc @@ fun () ->
   let { desc_def; _ } =
     modules_of_type_declarations type_declarations in
-  desc_def
+  let stop_doc = [%str (**/**)] in
+  stop_doc @ desc_def @ stop_doc
 
 (*
 let str_type_decl =
@@ -2149,7 +2150,8 @@ let str_type_decl =
 let make_sig ~loc type_declarations : Parsetree.signature =
   let { desc_sig; _ } =
     modules_of_type_declarations type_declarations in
-  desc_sig
+  let stop_doc = [%sig: (**/**)] in
+  stop_doc @ desc_sig @ stop_doc
 
 (*
 let sig_type_decl = Ppxlib.Deriving.Generator.make_noarg make_sig

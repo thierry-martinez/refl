@@ -1,3 +1,7 @@
+# Next version
+- hide refl definitions from ocamldoc by parenthesizing them with documentation
+  stoppers (`(**/**)`).
+
 # v0.2.1 - 2020-07-16
 - Fix: make lazy values visitable again
 
