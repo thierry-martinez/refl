@@ -144,6 +144,59 @@ type ('a, 'arity, 'attribute) typed_attribute_kind = ..
 
 type _ refl = ..
 
+type ('source, 'sub, 'arg) transfer_argument =
+  | Transfer : ('a, 'a, [`Present]) transfer_argument
+  | Skip : (_, _, [`Absent]) transfer_argument
+
+type ('source, 'sub, 'arg) transfer_arguments =
+  | VTANil : (unit, _, unit) transfer_arguments
+  | VTACons :
+      { head : ('source, 'sub, 'arg) transfer_argument;
+        tail : ('sources, 'sub, 'args) transfer_arguments } ->
+        ('source * 'sources, 'sub, 'arg * 'args) transfer_arguments
+
+type ('p, 'n, 'sp, 'sn, 'ap, 'an) transfer_matrix = {
+    pp : ('p, 'sp, 'ap) transfer_arguments;
+    pn : ('p, 'sn, 'an) transfer_arguments;
+    np : ('n, 'sp, 'an) transfer_arguments;
+    nn : ('n, 'sn, 'ap) transfer_arguments;
+  }
+
+type ('positive, 'negative, 'direct, 'subpositive, 'subnegative, 'subdirect,
+      'variables) transfer =
+  | VTNil : (_, _, _, unit, unit, unit, unit) transfer
+  | VTCons :
+      { head :
+          ('p, 'n, 'sp, 'sn, 'ap, 'an) transfer_matrix *
+          ('d, 'sd, 'ad) transfer_arguments;
+        tail :
+          ('p, 'n, 'd, 'sps, 'sns, 'sds, 'variables) transfer } ->
+      ('p, 'n, 'd, 'sp * 'sps, 'sn * 'sns, 'sd * 'sds,
+        ('ap * 'an * 'ad) * 'variables) transfer
+
+type ('a, 'b) skip =
+  | VKeep : ('a, 'a) skip
+  | VSkip : ('a, [`Absent]) skip
+
+type ('variables, 'skip_variables) skip_vector =
+  | SKNil : (unit, unit) skip_vector
+  | SKCons :
+      { head : unit -> ('hd, 'skip_hd) skip;
+        tail : ('a, 'b) skip_vector } ->
+        ('hd * 'a, 'skip_hd * 'b) skip_vector
+
+type ('positive, 'negative, 'direct, 'skip_positive, 'skip_negative,
+      'skip_direct, 'variables) transfer_skip =
+  | Transfer_skip : {
+    transfer_vector :
+      ('positive, 'negative, 'direct, 'subpositive, 'subnegative, 'subdirect,
+       'variables) transfer;
+    skip_positive : ('subpositive, 'skip_positive) skip_vector;
+    skip_negative : ('subnegative, 'skip_negative) skip_vector;
+    skip_direct : ('subdirect, 'skip_direct) skip_vector;
+  } -> ('positive, 'negative, 'direct, 'skip_positive, 'skip_negative,
+      'skip_direct, 'variables) transfer_skip
+
 type
   ('a, 'structure, 'arity, 'rec_group, 'kinds, 'positive, 'negative, 'direct,
     'gadt) desc =
@@ -245,7 +298,7 @@ type
             'subnegative, 'subdirect, 'gadt) desc;
         transfer :
           ('positive, 'negative, 'direct, 'subpositive, 'subnegative,
-            'subdirect, 'variables) transfer;
+            'subdirect, 'variables) transfer_skip;
       } ->
         ('a,
           [`Apply of 'structure * 'structures * 'subpositive * 'subnegative *
@@ -607,36 +660,6 @@ and ('types, 'structures, 'arity, 'rec_group, 'kinds, 'variables, 'gadt)
         ('a * 'types, 'structure * 'structures, 'arity, 'rec_group,
           'kinds, ('positive * 'negative * 'direct) * 'variables, 'gadt)
           vector
-
-and ('positive, 'negative, 'direct, 'subpositive, 'subnegative, 'subdirect,
-      'variables) transfer =
-  | VTNil : (_, _, _, unit, unit, unit, unit) transfer
-  | VTCons :
-      { head :
-          ('p, 'n, 'sp, 'sn, 'ap, 'an) transfer_matrix *
-          ('d, 'sd, 'ad) transfer_arguments;
-        tail :
-          ('p, 'n, 'd, 'sps, 'sns, 'sds, 'variables) transfer } ->
-      ('p, 'n, 'd, 'sp * 'sps, 'sn * 'sns, 'sd * 'sds,
-        ('ap * 'an * 'ad) * 'variables) transfer
-
-and ('p, 'n, 'sp, 'sn, 'ap, 'an) transfer_matrix = {
-    pp : ('p, 'sp, 'ap) transfer_arguments;
-    pn : ('p, 'sn, 'an) transfer_arguments;
-    np : ('n, 'sp, 'an) transfer_arguments;
-    nn : ('n, 'sn, 'ap) transfer_arguments;
-  }
-
-and ('source, 'sub, 'arg) transfer_arguments =
-  | VTANil : (unit, _, unit) transfer_arguments
-  | VTACons :
-      { head : ('source, 'sub, 'arg) transfer_argument;
-        tail : ('sources, 'sub, 'args) transfer_arguments } ->
-        ('source * 'sources, 'sub, 'arg * 'args) transfer_arguments
-
-and ('source, 'sub, 'arg) transfer_argument =
-  | Transfer : ('a, 'a, [`Present]) transfer_argument
-  | Skip : (_, _, [`Absent]) transfer_argument
 
 and ('eqs, 'structure_eqs, 'kinds, 'gadt) constructor_eqs =
   | ENil :

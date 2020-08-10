@@ -250,7 +250,7 @@ module type VectorS = sig
     ('types, 'structures, 'arity, 'rec_group, 'kinds, 'arguments, 'gadt)
       vector ->
     ('positive, 'negative, 'direct, 'subpositive, 'subnegative, 'subdirect,
-      'arguments) transfer ->
+      'arguments) transfer_skip ->
     ('arity, 'direct) t ->
     ('types, 'subdirect) t
 
@@ -321,7 +321,19 @@ module Vector (T : UnaryTypeS) : VectorS with module T = T = struct
           desc -> ('arity, 'ad) t -> 'a T.t;
     }
 
-  let rec make :
+  let rec skip :
+    type types variables skip_variables .
+    (variables, skip_variables) skip_vector -> (types, variables) t ->
+    (types, skip_variables) t =
+  fun s items ->
+    match s, items with
+    | SKNil, [] -> []
+    | SKCons { head; tail = s }, hd :: tl ->
+        match head () with
+        | VKeep -> hd :: skip s tl
+        | VSkip -> None :: skip s tl
+
+  let rec make_transfer_vector :
     type types structures subpositive subnegative subdirect arguments gadt .
     ('arity, 'rec_group, 'kinds) make ->
     (types, structures, 'arity, 'rec_group, 'kinds, arguments, gadt) vector ->
@@ -336,10 +348,16 @@ module Vector (T : UnaryTypeS) : VectorS with module T = T = struct
       VTCons { head = (_, direct); tail = transfer_tail } ->
         begin match make_transfer direct items with
         | Ok arg_items ->
-            Some (f.f head arg_items) :: make f tail transfer_tail items
+            Some (f.f head arg_items) ::
+            make_transfer_vector f tail transfer_tail items
         | Error Eq ->
-            None :: make f tail transfer_tail items
+            None :: make_transfer_vector f tail transfer_tail items
         end
+
+  let make f vector transfer items =
+    match transfer with
+    | Transfer_skip { transfer_vector; skip_direct; _ } ->
+        skip skip_direct (make_transfer_vector f vector transfer_vector items)
 
   type 'presence any =
     | None : [`Absent] any
@@ -439,7 +457,7 @@ module BinaryVector (T : BinaryTypeS) = struct
           desc -> ('arity_a, 'arity_b, 'ad) t -> ('a, 'b) T.t;
     }
 
-  let rec make :
+  let rec make_transfer_vector :
     type types_a types_b structures subpositive subnegative subdirect arguments
       gadt_a gadt_b .
     ('arity_a, 'arity_b, 'rec_group, 'kinds, gadt_a, gadt_b) make ->
@@ -459,10 +477,27 @@ module BinaryVector (T : BinaryTypeS) = struct
         begin match make_transfer direct items with
         | Ok arg_items ->
             Some (f.f a.head b.head arg_items) ::
-              make f a.tail b.tail transfer_tail items
+              make_transfer_vector f a.tail b.tail transfer_tail items
         | Error Eq ->
-            None :: make f a.tail b.tail transfer_tail items
+            None :: make_transfer_vector f a.tail b.tail transfer_tail items
         end
+
+  let rec skip :
+    type a b variables skip_variables .
+    (variables, skip_variables) skip_vector -> (a, b, variables) t ->
+    (a, b, skip_variables) t =
+  fun s items ->
+    match s, items with
+    | SKNil, [] -> []
+    | SKCons { head; tail = s }, hd :: tl ->
+        match head () with
+        | VKeep -> hd :: skip s tl
+        | VSkip -> None :: skip s tl
+
+  let make f a b transfer items =
+    match transfer with
+    | Transfer_skip { transfer_vector; skip_direct; _ } ->
+        skip skip_direct (make_transfer_vector f a b transfer_vector items)
 
   type 'presence any =
     | None : [`Absent] any
@@ -688,7 +723,7 @@ module SignedVector (T : BinaryTypeS) = struct
           ('a_arity, 'b_arity, 'ap, 'an) t -> ('a, 'b) T.t;
     }
 
-  let rec make :
+  let rec make_transfer_vector :
     type a_types b_types structures arguments subpositive subnegative
           subdirect a_arity b_arity rec_group gadt .
     (rec_group, 'a_kinds, 'b_kinds) make ->
@@ -712,16 +747,46 @@ module SignedVector (T : BinaryTypeS) = struct
                 f.f a_head b_head (p_of_symmetric args),
                 f.f b_head a_head
                   (reverse (p_of_symmetric (reverse_of_symmetric args)))) ::
-              make f a_tail b_tail transfer_tail items
+              make_transfer_vector f a_tail b_tail transfer_tail items
           | TP args ->
               P (f.f a_head b_head args) ::
-              make f a_tail b_tail transfer_tail items
+              make_transfer_vector f a_tail b_tail transfer_tail items
           | TN args ->
               N (f.f b_head a_head (reverse args)) ::
-              make f a_tail b_tail transfer_tail items
+              make_transfer_vector f a_tail b_tail transfer_tail items
           | TNone ->
-              None :: make f a_tail b_tail transfer_tail items
+              None :: make_transfer_vector f a_tail b_tail transfer_tail items
           end
+
+  let rec skip :
+    type a b positive negative skip_positive skip_negative .
+    (positive, skip_positive) skip_vector ->
+    (negative, skip_negative) skip_vector ->
+    (a, b, positive, negative) t -> (a, b, skip_positive, skip_negative) t =
+  fun p n items ->
+    match p, n, items with
+    | SKNil, SKNil, [] -> []
+    | SKCons { head = head_p; tail = p },
+      SKCons { head = head_n; tail = n }, hd :: tl ->
+        begin match head_p (), head_n (), hd with
+        | VKeep, VKeep, _ -> hd :: skip p n tl
+        | VKeep, VSkip, PN (f, _g) -> P f :: skip p n tl
+        | VKeep, VSkip, P f -> P f :: skip p n tl
+        | VKeep, VSkip, N _ -> None :: skip p n tl
+        | VKeep, VSkip, None -> None :: skip p n tl
+        | VSkip, VKeep, PN (_f, g) -> N g :: skip p n tl
+        | VSkip, VKeep, P _ -> None :: skip p n tl
+        | VSkip, VKeep, N g -> N g :: skip p n tl
+        | VSkip, VKeep, None -> None :: skip p n tl
+        | VSkip, VSkip, _ -> None :: skip p n tl
+        end
+    | _ -> .
+
+  let make f a b transfer items =
+    match transfer with
+    | Transfer_skip { transfer_vector; skip_positive; skip_negative; _ } ->
+        skip skip_positive skip_negative
+          (make_transfer_vector f a b transfer_vector items)
 end
 
 module type Desc_type = sig

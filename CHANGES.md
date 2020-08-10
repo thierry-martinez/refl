@@ -2,6 +2,9 @@
 - hide refl definitions from ocamldoc by parenthesizing them with documentation
   stoppers (`(**/**)`).
 
+- Fix: support type constructors with shadow type parameters inside type
+  declarations where the type parameters are not shadow.
+
 # v0.2.1 - 2020-07-16
 - Fix: make lazy values visitable again
 

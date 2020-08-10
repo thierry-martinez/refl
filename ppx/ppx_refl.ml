@@ -12,6 +12,12 @@ let attr_opaque : (Parsetree.core_type, unit -> unit) Ppxlib.Attribute.t =
     Fun.id
 *)
 
+let map_lident f (ident : Longident.t) : Longident.t =
+  match ident with
+  | Ldot (prefix, name) -> Ldot (prefix, f name)
+  | Lident ident -> Lident (f ident)
+  | _ -> assert false
+
 let rec remove_ident_prefix_opt (prefix : Longident.t) (ident : Longident.t)
     : Longident.t option =
   match ident with
@@ -247,7 +253,7 @@ let type_sequence_of_list l =
 
 let rec binary_type_of_list l =
   match l with
-  | [] -> assert false
+  | [] -> [%type: unit]
   | [leaf] -> [%type: [%t leaf] ref]
   | _ ->
       let even, odd = cut l in
@@ -317,7 +323,7 @@ type free_variable = {
 module StringIndexer = Indexer.Make (String)
 
 type context = {
-    name : string;
+    name : string option;
     rec_types : (int * int * type_info) StringMap.t option;
     vars : StringIndexer.t;
     fresh_counter : int ref;
@@ -367,10 +373,11 @@ let type_arg i =
 let type_constr_of_string ?(args = []) s =
   Ast_helper.Typ.constr (Metapp.mkloc (Longident.Lident s)) args
 
-let make_context name rec_types original_vars vars =
+let make_context ?name rec_types original_vars vars =
   let type_args = List.init (StringIndexer.count vars) type_arg in
   let type_vars = List.map Ast_helper.Typ.var type_args in
-  let type_expr = type_constr_of_string name ~args:type_vars in
+  let name_default = Option.value ~default:"" name in
+  let type_expr = type_constr_of_string name_default ~args:type_vars in
   { name;
     rec_types;
     vars;
@@ -383,7 +390,7 @@ let make_context name rec_types original_vars vars =
     selector = Direct;
     rev_eqs = ref [];
     eqs_counter = ref 0;
-    type_names = type_names_of_type_name name;
+    type_names = type_names_of_type_name name_default;
     type_args;
     type_vars;
     type_expr;
@@ -397,7 +404,8 @@ let context_of_type_declaration (td : Parsetree.type_declaration) rec_types
   let vars =
     StringIndexer.of_list
       (td.ptype_params |> List.map (fun (ty, _) -> var_of_core_type ty)) in
-  make_context td.ptype_name.txt rec_types (List.map fst td.ptype_params) vars
+  make_context ~name:td.ptype_name.txt rec_types (List.map fst td.ptype_params)
+    vars
 
 let builtins_dot field : Longident.t =
   Ldot (refl_dot "Builtins", field)
@@ -611,7 +619,10 @@ let structure_of_constr structure_of_type context ?rec_type
         end in
 *)
   let t, desc =
-    if type_args_regular context args then
+    if type_args_regular context args &&
+      match context.name with
+      | None -> true
+      | Some name -> constr = Lident name then
       begin
         if rec_type = None then
           context.constraints |> Metapp.mutate (fun constraints ->
@@ -665,6 +676,30 @@ let structure_of_constr structure_of_type context ?rec_type
         }, [%e transfer_direct]] in
       let transfer =
         ReflValueExp.transfer_of_list (List.map transfer_matrix variables) in
+      let args_count = List.length args in
+      let skip_item name i  =
+        [%expr fun () -> [%e
+          Ast_helper.Exp.ident (Metapp.mkloc (map_lident
+            (fun constr -> name constr i) constr))] Refl.VKeep Refl.VSkip] in
+      let make_skip_vector list =
+        ReflValueExp.typed_vector_of_list
+          (ReflValueExp.construct (refl_dot "SKNil") []) (refl_dot "SKCons")
+          list in
+      let skip_positive =
+        make_skip_vector (List.init args_count (fun i ->
+          skip_item Constraints.Variables.positive_name i)) in
+      let skip_negative =
+        make_skip_vector (List.init args_count (fun i ->
+          skip_item Constraints.Variables.negative_name i)) in
+      let skip_direct =
+        make_skip_vector (List.init args_count (fun i ->
+          skip_item Constraints.Variables.direct_name i)) in
+      let transfer =
+        [%expr Transfer_skip {
+          transfer_vector = [%e transfer];
+          skip_positive = [%e skip_positive];
+          skip_negative = [%e skip_negative];
+          skip_direct = [%e skip_direct]}] in
       let nb_args = List.length args in
       let variable_types name =
         variable_types constr nb_args name
@@ -1208,16 +1243,16 @@ let extract_gadt_equalities context
       let args =
         match ty with
         | { ptyp_desc = Ptyp_constr ({ txt = Lident name; _ }, args); _ }
-          when name = context.name -> args
+          when Some name = context.name -> args
         | _ ->
             Location.raise_errorf ~loc:!Ast_helper.default_loc
-              "Type constructor '%s' expected" context.name in
+              "Type constructor '%s' expected" (Option.get context.name) in
       let arg_count = List.length args in
       let arity = StringIndexer.count context.vars in
       if arg_count <> arity then
         Location.raise_errorf ~loc:!Ast_helper.default_loc
 "Type constructor '%s' has %d parameters but %d arguments given"
-          context.name arity arg_count;
+          (Option.get context.name) arity arg_count;
       let add_eq (eqs, vars) arg =
         match var_of_core_type_opt arg with
         | Some None ->
@@ -1291,15 +1326,15 @@ let make_variables_structure context variable_count variables =
     directs = make_variables variable_count variables Direct [%type: unit];
     positive =
       make_variables variable_count variables Right
-        (variables_type context.name initial_arity
+        (variables_type (Option.get context.name) initial_arity
           Constraints.Variables.positive_name);
     negative =
       make_variables variable_count variables Left
-        (variables_type context.name initial_arity
+        (variables_type (Option.get context.name) initial_arity
           Constraints.Variables.negative_name);
     direct =
       make_variables variable_count variables Direct
-        (variables_type context.name initial_arity
+        (variables_type (Option.get context.name) initial_arity
           Constraints.Variables.direct_name);
   }
 
@@ -1340,7 +1375,7 @@ let structure_of_label_declaration context prefix single_label
         type_constr_of_string context.type_names.gadt ~args:type_args in
       let internal_name, internal_label, type_declarations =
         if single_label then
-          context.name, label.pld_name, []
+          Option.get context.name, label.pld_name, []
         else
           let internal_name =
             Printf.sprintf "%s__%s" prefix label.pld_name.txt in
@@ -1420,7 +1455,8 @@ let make_constructor_kind context
   | Pcstr_record labels ->
       let single_label = is_singleton labels in
       let prefix =
-        Printf.sprintf "%s__%s" context.name constructor.pcd_name.txt in
+        Printf.sprintf "%s__%s" (Option.get context.name)
+          constructor.pcd_name.txt in
       let structures =
         List.map2 (structure_of_label_declaration context prefix single_label)
           labels items in
@@ -1529,7 +1565,7 @@ let structure_of_exists single_constructor ctor_count i context
     ((parameters, renamed_args), indexer) in
   let vars = vars |> StringIndexer.union free_variables in
   let branch_name =
-    Printf.sprintf "%s_%s" context.name constructor.pcd_name.txt in
+    Printf.sprintf "%s_%s" (Option.get context.name) constructor.pcd_name.txt in
   let context' = { context with vars;
     constraints = ref Constraints.bottom;
     gadt_args = result_args; } in
@@ -1551,7 +1587,7 @@ let structure_of_exists single_constructor ctor_count i context
   let composed, value_type_name, type_declarations =
     if single_constructor then
       constructor_with_args,
-      context.name,
+      Option.get context.name,
       type_declarations
     else
       let branch_constructor = String.capitalize_ascii branch_name in
@@ -1812,8 +1848,8 @@ let structure_of_record context (labels : Parsetree.label_declaration list)
     (Constraints.add_direct_kind "Record");
   let single_label = is_singleton labels in
   let structures =
-    List.map2 (structure_of_label_declaration context context.name single_label)
-      labels items in
+    List.map2 (structure_of_label_declaration context (Option.get context.name)
+      single_label) labels items in
   let structures, destructs = List.split structures in
   let types, descs = List.split structures in
   let destructs, type_declarations = List.split destructs in
@@ -1879,7 +1915,7 @@ let subgadt_mapper context type_extensions =
   let typ mapper t =
     match Ast_mapper.default_mapper.typ mapper t with
     | [%type: [`SubGADT of [%t? ty]]] ->
-        if context.name = "" then
+        if context.name = None then
           ty
         else
           t
@@ -1887,13 +1923,13 @@ let subgadt_mapper context type_extensions =
   let expr mapper e =
     match Ast_mapper.default_mapper.expr mapper e with
     | [%expr Refl.SubGADT ([%e? desc] : [%t? base] -> [%t? sub])] ->
-        if context.name = "" then
-          desc
-        else
+        begin match context.name with
+        | None -> desc
+        | Some name ->
           let index = !type_extension_count in
           type_extension_count := succ index;
           let constructor_name = Printf.sprintf "%s__sub_%d"
-            (String.capitalize_ascii context.name) index in
+            (String.capitalize_ascii name) index in
           let constructor =
             Metapp.Value.construct (Lident constructor_name) [] in
           type_extensions :=
@@ -1918,6 +1954,7 @@ let subgadt_mapper context type_extensions =
             sub_gadt = {
               Refl.sub_gadt_ext = [%e constructor.exp];
               sub_gadt_functional }}]
+        end
     | e -> e in
   { Ast_mapper.default_mapper with typ; expr }
 
@@ -2168,7 +2205,7 @@ let enumerate_free_variables (ty : Parsetree.core_type)
 let extension ty : Parsetree.expression =
   let names, anonymous = enumerate_free_variables ty in
   let arity = StringSet.cardinal names + anonymous in
-  let context = make_context "" None [] (StringIndexer.of_fresh arity) in
+  let context = make_context None [] (StringIndexer.of_fresh arity) in
   let _structure, expr = structure_of_type context ty in
   let mapper = subgadt_mapper context (ref []) in
   let expr = mapper.expr mapper expr in
