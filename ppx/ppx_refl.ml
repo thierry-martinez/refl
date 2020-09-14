@@ -1,12 +1,12 @@
 open Common
 
 (*
-let attr_nobuiltin : (Parsetree.core_type, unit -> unit) Ppxlib.Attribute.t =
+let attr_nobuiltin : (Ppxlib.core_type, unit -> unit) Ppxlib.Attribute.t =
   Ppxlib.Attribute.declare "refl.nobuiltin" Core_type
     (Ppxlib.Ast_pattern.(pstr nil))
     Fun.id
 
-let attr_opaque : (Parsetree.core_type, unit -> unit) Ppxlib.Attribute.t =
+let attr_opaque : (Ppxlib.core_type, unit -> unit) Ppxlib.Attribute.t =
   Ppxlib.Attribute.declare "refl.opaque" Core_type
     (Ppxlib.Ast_pattern.(pstr nil))
     Fun.id
@@ -39,8 +39,8 @@ let rec remove_ident_prefix_opt (prefix : Longident.t) (ident : Longident.t)
       end
   | Lident _ -> None
 
-let ident_of_str (x : Ast_helper.str) : Parsetree.expression =
-  Ast_helper.Exp.ident ~loc:x.loc (Metapp.lid_of_str x)
+let ident_of_str (x : Ast_helper.str) : Ppxlib.expression =
+  Ppxlib.Ast_helper.Exp.ident ~loc:x.loc (Metapp.lid_of_str x)
 
 let item i =
   Printf.sprintf "item%d" i
@@ -262,8 +262,8 @@ let rec binary_type_of_list l =
 type type_info = {
     desc_name : string;
     arity : int;
-    td : Parsetree.type_declaration;
-    recursive : Asttypes.rec_flag ref;
+    td : Ppxlib.type_declaration;
+    recursive : Ppxlib.Asttypes.rec_flag ref;
   }
 
 let refl_name s =
@@ -307,7 +307,7 @@ let type_names_of_type_name type_name = {
      refl_ctor = type_refl_ctor type_name;
    }
 
-let type_info_of_type_declaration recursive (td : Parsetree.type_declaration) =
+let type_info_of_type_declaration recursive (td : Ppxlib.type_declaration) =
   { td;
     desc_name = refl_name td.ptype_name.txt;
     arity = List.length td.ptype_params;
@@ -333,29 +333,29 @@ type context = {
     constraints : Constraints.t ref;
     origin : Constraints.Variables.Path.origin;
     selector : Constraints.Variables.Path.selector;
-    rev_eqs : Parsetree.core_type list ref;
+    rev_eqs : Ppxlib.core_type list ref;
     eqs_counter : int ref;
     type_names : type_names;
     type_args : string list;
-    type_vars : Parsetree.core_type list;
-    type_expr : Parsetree.core_type;
+    type_vars : Ppxlib.core_type list;
+    type_expr : Ppxlib.core_type;
     exists : Constraints.Transfer.t option ref;
-    gadt_args : Parsetree.core_type list;
-    original_vars : Parsetree.core_type list;
+    gadt_args : Ppxlib.core_type list;
+    original_vars : Ppxlib.core_type list;
   }
 
-let var_of_core_type_opt (ty : Parsetree.core_type) =
+let var_of_core_type_opt (ty : Ppxlib.core_type) =
   match ty with
   | [%type: _] -> Some None
   | { ptyp_desc = Ptyp_var s; _ } -> Some (Some s)
   | _ -> None
 
-let var_of_core_type (ty : Parsetree.core_type) =
+let var_of_core_type (ty : Ppxlib.core_type) =
   match var_of_core_type_opt ty with
   | Some var -> var
   | None ->
       Location.raise_errorf ~loc:!Ast_helper.default_loc
-        "Type variable expected but '%a' found" Pprintast.core_type ty
+        "Type variable expected but '%a' found" Ppxlib.Pprintast.core_type ty
 
 let make_index (f : 'a -> string option) (l : 'a list) (count : int) :
     (int * int * 'a) StringMap.t =
@@ -371,11 +371,11 @@ let type_arg i =
    Printf.sprintf "a%d" i
 
 let type_constr_of_string ?(args = []) s =
-  Ast_helper.Typ.constr (Metapp.mkloc (Longident.Lident s)) args
+  Ppxlib.Ast_helper.Typ.constr (Metapp.mkloc (Longident.Lident s)) args
 
 let make_context ?name rec_types original_vars vars =
   let type_args = List.init (StringIndexer.count vars) type_arg in
-  let type_vars = List.map Ast_helper.Typ.var type_args in
+  let type_vars = List.map Ppxlib.Ast_helper.Typ.var type_args in
   let name_default = Option.value ~default:"" name in
   let type_expr = type_constr_of_string name_default ~args:type_vars in
   { name;
@@ -399,7 +399,7 @@ let make_context ?name rec_types original_vars vars =
     original_vars;
   }
 
-let context_of_type_declaration (td : Parsetree.type_declaration) rec_types
+let context_of_type_declaration (td : Ppxlib.type_declaration) rec_types
     : context =
   let vars =
     StringIndexer.of_list
@@ -411,11 +411,11 @@ let builtins_dot field : Longident.t =
   Ldot (refl_dot "Builtins", field)
 
 let irrefutable () =
-  [Ast_helper.Exp.case [%pat? _] (Ast_helper.Exp.unreachable ())]
+  [Ppxlib.Ast_helper.Exp.case [%pat? _] (Ppxlib.Ast_helper.Exp.unreachable ())]
 
 let structure_of_tuple structure_of_type context
-    (types : Parsetree.core_type list)
-    : Parsetree.core_type * Parsetree.expression =
+    (types : Ppxlib.core_type list)
+    : Ppxlib.core_type * Ppxlib.expression =
   let arity = List.length types in
   let types, descs =
     List.split (List.map (structure_of_type context) types) in
@@ -428,13 +428,13 @@ let structure_of_tuple structure_of_type context
   let module ValuesExp = Values (Metapp.Exp) in
   let module ValuesPat = Values (Metapp.Pat) in
   let construct =
-    Ast_helper.Exp.case ValuesPat.sequence ValuesExp.tuple :: irrefutable () in
-  let destruct = Ast_helper.Exp.case ValuesPat.tuple ValuesExp.sequence in
+    Ppxlib.Ast_helper.Exp.case ValuesPat.sequence ValuesExp.tuple :: irrefutable () in
+  let destruct = Ppxlib.Ast_helper.Exp.case ValuesPat.tuple ValuesExp.sequence in
   [%type: [`Tuple of [%t type_sequence_of_list types]]],
   [%expr Refl.Tuple {
     structure = [%e ValuesExp.tuple_of_list descs];
-    construct = [%e Ast_helper.Exp.function_ construct];
-    destruct = [%e Ast_helper.Exp.function_ [destruct]];
+    construct = [%e Ppxlib.Ast_helper.Exp.function_ construct];
+    destruct = [%e Ppxlib.Ast_helper.Exp.function_ [destruct]];
   }]
 
 let rec for_alli_from index p list =
@@ -445,9 +445,9 @@ let rec for_alli_from index p list =
 let for_alli p list =
   for_alli_from 0 p list
 
-let type_args_regular context (args : Parsetree.core_type list) =
+let type_args_regular context (args : Ppxlib.core_type list) =
   List.length args = StringIndexer.count context.vars &&
-  args |> for_alli begin fun i (arg : Parsetree.core_type) ->
+  args |> for_alli begin fun i (arg : Ppxlib.core_type) ->
     match arg with
     | { ptyp_desc = Ptyp_var s; _ } ->
         begin match StringIndexer.find_opt s context.vars with
@@ -490,15 +490,15 @@ let compose_transfer txt present unknown =
   Constraints.Transfer.Constr (txt, present, unknown)
 
 let compose_type txt present unknown =
-  Ast_helper.Typ.constr (Metapp.mkloc txt) [present; unknown]
+  Ppxlib.Ast_helper.Typ.constr (Metapp.mkloc txt) [present; unknown]
 
 let compose_expr txt present unknown =
-  [%expr [%e Ast_helper.Exp.ident (Metapp.mkloc txt)]
+  [%expr [%e Ppxlib.Ast_helper.Exp.ident (Metapp.mkloc txt)]
      [%e present] [%e unknown]]
 
 let variable_types type_name arity name absent =
   type_sequence_of_list (List.init arity begin fun i ->
-    Ast_helper.Typ.constr
+    Ppxlib.Ast_helper.Typ.constr
       (Metapp.mkloc (subst_ident (fun s -> name s i) type_name))
       [[%type: [`Present]]; absent i]
   end)
@@ -510,22 +510,24 @@ module ReflValuePat = ReflValue (Metapp.Pat)
 module ReflValueVal = ReflValue (Metapp.Value)
 
 let subst_free_variables
-    (f : Location.t -> string option -> Parsetree.core_type)
-    (ty : Parsetree.core_type) : Parsetree.core_type =
-  let typ (mapper : Ast_mapper.mapper) (ty : Parsetree.core_type)
-      : Parsetree.core_type =
-    match var_of_core_type_opt ty with
-    | None -> Ast_mapper.default_mapper.typ mapper ty
-    | Some var -> f ty.ptyp_loc var in
-  let mapper = { Ast_mapper.default_mapper with typ } in
-  mapper.typ mapper ty
+    (f : Location.t -> string option -> Ppxlib.core_type)
+    (ty : Ppxlib.core_type) : Ppxlib.core_type =
+  let mapper = object
+    inherit Ppxlib.Ast_traverse.map as super
+
+    method! core_type (ty : Ppxlib.core_type) : Ppxlib.core_type =
+      match var_of_core_type_opt ty with
+      | None -> super#core_type ty
+      | Some var -> f ty.ptyp_loc var
+  end in
+  mapper#core_type ty
 
 exception Exists of Location.t * string option
 
 let subst_type_vars_opt map _loc name =
   Option.bind name @@ fun name ->
   Option.bind (StringMap.find_opt name map) @@ fun index ->
-  Some (Ast_helper.Typ.var (type_arg index))
+  Some (Ppxlib.Ast_helper.Typ.var (type_arg index))
 
 let subst_type_vars map loc name =
   match subst_type_vars_opt map loc name with
@@ -535,7 +537,7 @@ let subst_type_vars map loc name =
 (*
 let subst_type_vars_exists map loc name =
   match subst_type_vars_opt map loc name with
-  | None -> Ast_helper.Typ.any ()
+  | None -> Ppxlib.Ast_helper.Typ.any ()
   | Some result -> result
 *)
 
@@ -555,23 +557,23 @@ let instantiate _loc var =
   | Some var -> type_constr_of_string var
 
 let structure_of_constr structure_of_type context ?rec_type
-    (constr : Longident.t) (args : Parsetree.core_type list)
-    : Parsetree.core_type * Parsetree.expression =
+    (constr : Longident.t) (args : Ppxlib.core_type list)
+    : Ppxlib.core_type * Ppxlib.expression =
   let t, desc =
     match rec_type with
     | None ->
         context.constraints |> Metapp.mutate (
           Constraints.add_inherited_kind (subst_ident kinds_name constr));
         let structure =
-          Ast_helper.Typ.constr
+          Ppxlib.Ast_helper.Typ.constr
             (Metapp.mkloc (subst_ident structure_name constr))
             [] in
         let rec_group_type =
-          Ast_helper.Typ.constr
+          Ppxlib.Ast_helper.Typ.constr
             (Metapp.mkloc (subst_ident rec_group_name constr))
             [] in
         let unwrapped_desc =
-          Ast_helper.Exp.ident
+          Ppxlib.Ast_helper.Exp.ident
             (Metapp.mkloc (subst_ident refl_name constr)) in
         let t, desc =
           [%type: [`RecGroup of [%t structure] * [%t rec_group_type]]],
@@ -580,7 +582,7 @@ let structure_of_constr structure_of_type context ?rec_type
         let arrow =
           [%type: [%t type_constr_of_string context.type_names.gadt
              ~args:context.gadt_args] ->
-          [%t Ast_helper.Typ.constr
+          [%t Ppxlib.Ast_helper.Typ.constr
             (Metapp.mkloc (subst_ident gadt_name constr)) args]] in
         [%type: [`SubGADT of [%t t]]],
         [%expr Refl.SubGADT ([%e desc] : [%t arrow])]
@@ -589,7 +591,7 @@ let structure_of_constr structure_of_type context ?rec_type
         let arrow =
           [%type: [%t type_constr_of_string context.type_names.gadt
              ~args:context.gadt_args] ->
-          [%t Ast_helper.Typ.constr
+          [%t Ppxlib.Ast_helper.Typ.constr
             (Metapp.mkloc (subst_ident gadt_name constr)) args]] in
         context.rec_type_refs |> Metapp.mutate (IntSet.add index);
         [%type: [`SubGADT of [`Rec of [%t binary_type_of_int index length]]]],
@@ -604,7 +606,7 @@ let structure_of_constr structure_of_type context ?rec_type
     | None ->
         begin
             let ty =
-              Ast_helper.Typ.constr (Metapp.mkloc (subst_ident gadt_name constr))
+              Ppxlib.Ast_helper.Typ.constr (Metapp.mkloc (subst_ident gadt_name constr))
                 args in
             let ty =
               subst_free_variables (subst_type_vars_exists context.vars.map) ty in
@@ -679,7 +681,7 @@ let structure_of_constr structure_of_type context ?rec_type
       let args_count = List.length args in
       let skip_item name i  =
         [%expr fun () -> [%e
-          Ast_helper.Exp.ident (Metapp.mkloc (map_lident
+          Ppxlib.Ast_helper.Exp.ident (Metapp.mkloc (map_lident
             (fun constr -> name constr i) constr))] Refl.VKeep Refl.VSkip] in
       let make_skip_vector list =
         ReflValueExp.typed_vector_of_list
@@ -752,12 +754,12 @@ let structure_of_constr structure_of_type context ?rec_type
   t, desc
 
 let expr_of_string s =
-  Ast_helper.Exp.constant (Ast_helper.Const.string s)
+  Ppxlib.Ast_helper.Exp.constant (Ppxlib.Ast_helper.Const.string s)
 
 let structure_of_row_field structure_of_type context
-    (row_field : Parsetree.row_field)
-    : Parsetree.core_type * Parsetree.expression =
-  Ast_helper.with_default_loc (Metapp.Rf.to_loc row_field) @@ fun () ->
+    (row_field : Ppxlib.row_field)
+    : Ppxlib.core_type * Ppxlib.expression =
+  Ppxlib.Ast_helper.with_default_loc (Metapp.Rf.to_loc row_field) @@ fun () ->
   match Metapp.Rf.destruct row_field with
   | Rtag (label, _, args) ->
       let structure, desc =
@@ -775,11 +777,11 @@ let structure_of_row_field structure_of_type context
       [%type: [`Inherit of [%t structure]]],
       [%expr Refl.VInherit [%e desc]]
 
-let accessors_of_row_field (ty : Parsetree.core_type Lazy.t) i
-    (row_field : Parsetree.row_field)
-    : Parsetree.case * Parsetree.case =
+let accessors_of_row_field (ty : Ppxlib.core_type Lazy.t) i
+    (row_field : Ppxlib.row_field)
+    : Ppxlib.case * Ppxlib.case =
   let arg = "arg" in
-  Ast_helper.with_default_loc (Metapp.Rf.to_loc row_field) @@ fun () ->
+  Ppxlib.Ast_helper.with_default_loc (Metapp.Rf.to_loc row_field) @@ fun () ->
   let module Values (Value : Metapp.ValueS) = struct
     include ReflValue (Value)
     let sequence, variant =
@@ -791,29 +793,29 @@ let accessors_of_row_field (ty : Parsetree.core_type Lazy.t) i
           sequence_of_list [ident], variant label.txt (Some ident)
       | Rinherit { ptyp_desc = Ptyp_constr (type_name, _); _ } ->
           let pat () =
-            Ast_helper.Pat.alias
-              (Ast_helper.Pat.type_ type_name) (Metapp.mkloc arg) in
+            Ppxlib.Ast_helper.Pat.alias
+              (Ppxlib.Ast_helper.Pat.type_ type_name) (Metapp.mkloc arg) in
           let expr () =
             [%expr ([%e ReflValueExp.var arg] :> [%t Lazy.force ty])] in
           var arg, choice expr pat
       | _ ->
-          Location.raise_errorf ~loc:!Ast_helper.default_loc
+          Location.raise_errorf ~loc:!Ppxlib.Ast_helper.default_loc
             "refl cannot be derived for such polymorphic variants"
     let choice = choice_of_int i sequence
   end in
   let module ValuesExp = Values (Metapp.Exp) in
   let module ValuesPat = Values (Metapp.Pat) in
-  Ast_helper.Exp.case ValuesPat.choice ValuesExp.variant,
-  Ast_helper.Exp.case ValuesPat.variant ValuesExp.choice
+  Ppxlib.Ast_helper.Exp.case ValuesPat.choice ValuesExp.variant,
+  Ppxlib.Ast_helper.Exp.case ValuesPat.variant ValuesExp.choice
 
 let structure_of_variant structure_of_type context
-    (fields : Parsetree.row_field list)
-    : Parsetree.core_type * Parsetree.expression =
+    (fields : Ppxlib.row_field list)
+    : Ppxlib.core_type * Ppxlib.expression =
   let cases =
     List.map (structure_of_row_field structure_of_type context) fields in
   let types, descs = List.split cases in
   let ty = lazy begin
-    let fields = fields |> List.map begin fun (field : Parsetree.row_field) ->
+    let fields = fields |> List.map begin fun (field : Ppxlib.row_field) ->
       match Metapp.Rf.destruct field with
       | Rtag (label, _, list) ->
           let list =
@@ -823,7 +825,7 @@ let structure_of_variant structure_of_type context
           Metapp.Rf.tag label false list
       | Rinherit _ -> field
     end in
-    Ast_helper.Typ.variant fields Closed None
+    Ppxlib.Ast_helper.Typ.variant fields Closed None
   end in
   let accessors = List.mapi (accessors_of_row_field ty) fields in
   let construct, destruct = List.split accessors in
@@ -831,14 +833,14 @@ let structure_of_variant structure_of_type context
   [%type: [`Variant of [%t type_sequence_of_list types]]],
   [%expr Refl.Variant {
     constructors = [%e ReflValueExp.variant_choices_of_list descs];
-    construct = [%e Ast_helper.Exp.function_ construct];
-    destruct = [%e Ast_helper.Exp.function_ destruct];
+    construct = [%e Ppxlib.Ast_helper.Exp.function_ construct];
+    destruct = [%e Ppxlib.Ast_helper.Exp.function_ destruct];
   }]
 
 let structure_of_builtins_or_constr structure_of_type context
-    (ty : Parsetree.core_type)
-    (constr : Longident.t) (args : Parsetree.core_type list)
-    : Parsetree.core_type * Parsetree.expression =
+    (ty : Ppxlib.core_type)
+    (constr : Longident.t) (args : Ppxlib.core_type list)
+    : Ppxlib.core_type * Ppxlib.expression =
   let ty =
     match ty.ptyp_desc with
     | Ptyp_constr (lid, args) ->
@@ -929,7 +931,8 @@ let name_free_variable context s =
       StringHashtbl.add context.free_var_table s var;
       var
 
-let structure_of_arrow structure_of_type context (label : Asttypes.arg_label)
+let structure_of_arrow structure_of_type context
+    (label : Ppxlib.Asttypes.arg_label)
     parameter result =
   let label_desc =
     match label with
@@ -968,18 +971,18 @@ let structure_of_arrow structure_of_type context (label : Asttypes.arg_label)
         parameter = [%e parameter_desc];
         result = [%e result_desc];
         wrap =
-          (fun f -> [%e Ast_helper.Exp.fun_ label None [%pat? x] [%expr f x]]);
+          (fun f -> [%e Ppxlib.Ast_helper.Exp.fun_ label None [%pat? x] [%expr f x]]);
         unwrap =
-          (fun f x -> [%e Ast_helper.Exp.apply [%expr f] [label, [%expr x]]]);
+          (fun f x -> [%e Ppxlib.Ast_helper.Exp.apply [%expr f] [label, [%expr x]]]);
       }]
   end
 
 let structure_of_object_field structure_of_type context
     (object_field : Metapp.Of.t)
-    : (Parsetree.core_type * Parsetree.expression) *
-    ((Parsetree.pattern * Parsetree.class_field) * Parsetree.expression) =
+    : (Ppxlib.core_type * Ppxlib.expression) *
+    ((Ppxlib.pattern * Ppxlib.class_field) * Ppxlib.expression) =
   let loc = Metapp.Of.to_loc object_field in
-  Ast_helper.with_default_loc loc @@ fun () ->
+  Ppxlib.Ast_helper.with_default_loc loc @@ fun () ->
   match Metapp.Of.destruct object_field with
   | Otag (label, argument) ->
       let structure, desc = structure_of_type context argument in
@@ -989,10 +992,10 @@ let structure_of_object_field structure_of_type context
           name = [%e expr_of_string label.txt];
           desc = [%e desc]}] in
       let construct =
-        ((Ast_helper.Pat.var label,
-          Ast_helper.Cf.method_ label Public
-           (Ast_helper.Cf.concrete Fresh [%expr
-             [%e Ast_helper.Exp.ident (Metapp.lid_of_str label)] ()])),
+        ((Ppxlib.Ast_helper.Pat.var label,
+          Ppxlib.Ast_helper.Cf.method_ label Public
+           (Ppxlib.Ast_helper.Cf.concrete Fresh [%expr
+             [%e Ppxlib.Ast_helper.Exp.ident (Metapp.lid_of_str label)] ()])),
           [%expr fun () -> [%e Metapp.Exp.send [%expr c] label]]) in
       structure, construct
   | Oinherit _ ->
@@ -1002,24 +1005,24 @@ let structure_of_object_field structure_of_type context
 let delays_dot = refl_dot "Delays"
 
 let structure_of_object structure_of_type context (fields : Metapp.Of.t list)
-    : Parsetree.core_type * Parsetree.expression =
+    : Ppxlib.core_type * Ppxlib.expression =
   let methods =
     List.map (structure_of_object_field structure_of_type context) fields in
   let structures, constructs = List.split methods in
   let types, descs = List.split structures in
   let construct, destruct = List.split constructs in
   let patterns, results = List.split construct in
-  let construct = [Ast_helper.Exp.case
+  let construct = [Ppxlib.Ast_helper.Exp.case
     (ReflValuePat.list ~prefix:delays_dot patterns)
-    (Ast_helper.Exp.object_ (Ast_helper.Cstr.mk [%pat? _] results))] in
+    (Ppxlib.Ast_helper.Exp.object_ (Ppxlib.Ast_helper.Cstr.mk [%pat? _] results))] in
   let destruct =
-    [Ast_helper.Exp.case (ReflValuePat.var "c")
+    [Ppxlib.Ast_helper.Exp.case (ReflValuePat.var "c")
        (ReflValueExp.list ~prefix:delays_dot destruct)] in
   [%type: [`Object of [%t type_sequence_of_list types]]],
   [%expr Refl.Object {
     methods = [%e ReflValueExp.object_methods_of_list descs];
-    construct = [%e Ast_helper.Exp.function_ construct];
-    destruct = [%e Ast_helper.Exp.function_ destruct];
+    construct = [%e Ppxlib.Ast_helper.Exp.function_ construct];
+    destruct = [%e Ppxlib.Ast_helper.Exp.function_ destruct];
   }]
 
 let make_variables variable_count variables selector e =
@@ -1057,9 +1060,9 @@ let make_arity_types arity =
   type_sequence_of_list (List.init arity
     (fun i -> type_constr_of_string (type_arg i)))
 
-let make_attributes context ty attributes : Parsetree.expression =
+let make_attributes context ty attributes : Ppxlib.expression =
   let cases =
-    attributes |> List.map begin fun (attribute : Parsetree.attribute) ->
+    attributes |> List.map begin fun (attribute : Ppxlib.attribute) ->
       let name = lid_of_attr_name (Metapp.Attr.name attribute).txt in
       let name : Longident.t =
         match name with
@@ -1067,11 +1070,11 @@ let make_attributes context ty attributes : Parsetree.expression =
             Ldot (Ldot (Lident "Refl", "Ocaml_attributes"), attr)
         | _ -> name in
       let expr = Metapp.Exp.of_payload (Metapp.Attr.payload attribute) in
-      Ast_helper.Exp.case (Metapp.Pat.construct name [])
+      Ppxlib.Ast_helper.Exp.case (Metapp.Pat.construct name [])
         [%expr Some [%e expr]]
     end in
   let cases =
-    cases @ [Ast_helper.Exp.case (Ast_helper.Pat.any ()) [%expr None ]] in
+    cases @ [Ppxlib.Ast_helper.Exp.case (Ppxlib.Ast_helper.Pat.any ()) [%expr None ]] in
   let accu = ref StringSet.empty in
   let ty =
     subst_free_variables (instantiate_with_free accu context.vars.map) ty in
@@ -1081,14 +1084,14 @@ let make_attributes context ty attributes : Parsetree.expression =
       ("__attribute" :: StringSet.elements !accu) in
   [%expr
      { Refl.typed = [%e List.fold_right Metapp.Exp.newtype forall_types
-          (Ast_helper.Exp.constraint_
-             (Ast_helper.Exp.function_ cases)
+          (Ppxlib.Ast_helper.Exp.constraint_
+             (Ppxlib.Ast_helper.Exp.function_ cases)
              [%type:
                 ([%t ty], [%t arity_types], __attribute)
                   Refl.typed_attribute_kind ->
                 __attribute option])] }]
 
-let transform_attr context structure desc (ty : Parsetree.core_type) =
+let transform_attr context structure desc (ty : Ppxlib.core_type) =
   match ty.ptyp_attributes with
   | [] -> structure, desc
   | attr ->
@@ -1099,9 +1102,9 @@ let transform_attr context structure desc (ty : Parsetree.core_type) =
           desc = [%e desc];
         }]
 
-let rec structure_of_type context (ty : Parsetree.core_type)
-    : Parsetree.core_type * Parsetree.expression =
-  Ast_helper.with_default_loc ty.ptyp_loc @@ fun () ->
+let rec structure_of_type context (ty : Ppxlib.core_type)
+    : Ppxlib.core_type * Ppxlib.expression =
+  Ppxlib.Ast_helper.with_default_loc ty.ptyp_loc @@ fun () ->
   let transform ty =
     match ty with
     | [%type: _] ->
@@ -1110,7 +1113,7 @@ let rec structure_of_type context (ty : Parsetree.core_type)
           Constraints.add_variable var.index
             (context.origin, context.selector)
         end;
-        Ast_helper.Typ.var var.name, ident_of_str (Metapp.mkloc var.name)
+        Ppxlib.Ast_helper.Typ.var var.name, ident_of_str (Metapp.mkloc var.name)
     | { ptyp_desc = Ptyp_var s; _ } ->
         begin match StringIndexer.find_opt s context.vars with
         | Some i ->
@@ -1126,7 +1129,7 @@ let rec structure_of_type context (ty : Parsetree.core_type)
               Constraints.add_variable var.index
                 (context.origin, context.selector)
             end;
-            Ast_helper.Typ.var var.name,
+            Ppxlib.Ast_helper.Typ.var var.name,
             ident_of_str (Metapp.mkloc var.name)
         end
     | { ptyp_desc = Ptyp_arrow (label, parameter, result); _} ->
@@ -1156,7 +1159,7 @@ let rec structure_of_type context (ty : Parsetree.core_type)
         structure_of_variant structure_of_type context fields
     | { ptyp_desc = Ptyp_object (methods, closed_flag); _ } ->
         if closed_flag = Open then
-          Location.raise_errorf ~loc:!Ast_helper.default_loc
+          Location.raise_errorf ~loc:!Ppxlib.Ast_helper.default_loc
             "Open object types are not supported by ppx_refl";
         context.constraints |> Metapp.mutate
           (Constraints.add_direct_kind "Object");
@@ -1165,8 +1168,8 @@ let rec structure_of_type context (ty : Parsetree.core_type)
         let var = name_free_variable context name in
         var.bound <- true;
         let structure, desc = structure_of_type context ty in
-        Ast_helper.Typ.alias structure var.name,
-        Ast_helper.Exp.let_ Recursive [Ast_helper.Vb.mk
+        Ppxlib.Ast_helper.Typ.alias structure var.name,
+        Ppxlib.Ast_helper.Exp.let_ Recursive [Ppxlib.Ast_helper.Vb.mk
           (Metapp.Pat.var var.name) desc]
           (Metapp.Exp.var var.name)
     | { ptyp_desc = Ptyp_poly (vars, ty); _ } ->
@@ -1175,7 +1178,7 @@ let rec structure_of_type context (ty : Parsetree.core_type)
             (vars |> List.map (fun var -> Some (Metapp.Typ.poly_name var))))} in
         structure_of_type context ty
     | _ ->
-        Location.raise_errorf ~loc:!Ast_helper.default_loc "Unsupported type" in
+        Location.raise_errorf ~loc:!Ppxlib.Ast_helper.default_loc "Unsupported type" in
   match Metapp.Attr.chop "opaque" ty.ptyp_attributes with
   | Some (_, attributes) ->
       let ty = { ty with ptyp_attributes = attributes } in
@@ -1213,30 +1216,32 @@ let rec structure_of_type context (ty : Parsetree.core_type)
 
 let fold_free_variables
     (f : Location.t -> string option -> 'acc -> 'acc)
-    (ty : Parsetree.core_type) (acc : 'acc) : 'acc =
-  let acc = ref acc in
-  let typ iterator ty =
-    match var_of_core_type_opt ty with
-    | None -> Ast_iterator.default_iterator.typ iterator ty
-    | Some var -> Metapp.mutate (f ty.ptyp_loc var) acc in
-  let iterator = { Ast_iterator.default_iterator with typ } in
-  iterator.typ iterator ty;
-  !acc
+    (ty : Ppxlib.core_type) (acc : 'acc) : 'acc =
+  let fold = object
+    inherit ['acc] Ppxlib.Ast_traverse.fold as super
+
+    method! core_type ty acc =
+      match var_of_core_type_opt ty with
+      | None -> super#core_type ty acc
+      | Some var -> f ty.ptyp_loc var acc
+  end in
+  fold#core_type ty acc
 
 let fold_map_free_variables
-    (f : Location.t -> string option -> 'acc -> Parsetree.core_type * 'acc)
-    (ty : Parsetree.core_type)  (acc : 'acc) : Parsetree.core_type * 'acc =
-  let acc = ref acc in
-  let typ mapper ty =
-    match var_of_core_type_opt ty with
-    | None -> Ast_mapper.default_mapper.typ mapper ty
-    | Some var -> Metapp.update (f ty.ptyp_loc var) acc in
-  let mapper = { Ast_mapper.default_mapper with typ } in
-  let ty = mapper.typ mapper ty in
-  ty, !acc
+    (f : Location.t -> string option -> 'acc -> Ppxlib.core_type * 'acc)
+    (ty : Ppxlib.core_type)  (acc : 'acc) : Ppxlib.core_type * 'acc =
+  let fold_map = object
+    inherit ['acc] Ppxlib.Ast_traverse.fold_map as super
+
+    method! core_type ty acc =
+      match var_of_core_type_opt ty with
+      | None -> super#core_type ty acc
+      | Some var -> f ty.ptyp_loc var acc
+  end in
+  fold_map#core_type ty acc
 
 let extract_gadt_equalities context
-    (constructor : Parsetree.constructor_declaration) =
+    (constructor : Ppxlib.constructor_declaration) =
   match constructor.pcd_res with
   | None -> [], context
   | Some ty ->
@@ -1245,12 +1250,12 @@ let extract_gadt_equalities context
         | { ptyp_desc = Ptyp_constr ({ txt = Lident name; _ }, args); _ }
           when Some name = context.name -> args
         | _ ->
-            Location.raise_errorf ~loc:!Ast_helper.default_loc
+            Location.raise_errorf ~loc:!Ppxlib.Ast_helper.default_loc
               "Type constructor '%s' expected" (Option.get context.name) in
       let arg_count = List.length args in
       let arity = StringIndexer.count context.vars in
       if arg_count <> arity then
-        Location.raise_errorf ~loc:!Ast_helper.default_loc
+        Location.raise_errorf ~loc:!Ppxlib.Ast_helper.default_loc
 "Type constructor '%s' has %d parameters but %d arguments given"
           (Option.get context.name) arity arg_count;
       let add_eq (eqs, vars) arg =
@@ -1268,7 +1273,7 @@ let extract_gadt_equalities context
         List.fold_left add_eq ([], StringIndexer.empty) args in
       let eqs =
         eqs |> List.map begin fun (index, ty) ->
-          let a = Ast_helper.Typ.var (type_arg index) in
+          let a = Ppxlib.Ast_helper.Typ.var (type_arg index) in
           let b = subst_free_variables (subst_type_vars vars.map) ty in
           [%type: ([%t a], [%t b]) Refl.eq]
         end in
@@ -1277,12 +1282,12 @@ let extract_gadt_equalities context
           Metapp.mutate (Constraints.add_direct_kind "GADT");
       eqs, { context with vars }
 
-let args_of_constructor (constructor : Parsetree.constructor_declaration)
-    : Parsetree.core_type list =
+let args_of_constructor (constructor : Ppxlib.constructor_declaration)
+    : Ppxlib.core_type list =
   match constructor.pcd_args with
   | Pcstr_tuple items -> items
   | Pcstr_record labels ->
-      List.map (fun (label : Parsetree.label_declaration) -> label.pld_type)
+      List.map (fun (label : Ppxlib.label_declaration) -> label.pld_type)
         labels
 
 let variables_type name arity sign =
@@ -1291,16 +1296,16 @@ let variables_type name arity sign =
       ~args:[[%type: [`Present]]; [%type: [`Absent]]]))
 
 type variables_structure = {
-    arity_types : Parsetree.core_type;
+    arity_types : Ppxlib.core_type;
     count_length : Metapp.value;
     count_append : Metapp.value;
-    variables : Parsetree.expression;
-    positives : Parsetree.core_type;
-    negatives : Parsetree.core_type;
-    directs : Parsetree.core_type;
-    positive : Parsetree.core_type;
-    negative : Parsetree.core_type;
-    direct : Parsetree.core_type;
+    variables : Ppxlib.expression;
+    positives : Ppxlib.core_type;
+    negatives : Ppxlib.core_type;
+    directs : Ppxlib.core_type;
+    positive : Ppxlib.core_type;
+    negative : Ppxlib.core_type;
+    direct : Ppxlib.core_type;
   }
 
 let make_variables_structure context variable_count variables =
@@ -1344,7 +1349,7 @@ let is_singleton list =
   | _ -> false
 
 let structure_of_label_declaration context prefix single_label
-    (label : Parsetree.label_declaration) item =
+    (label : Ppxlib.label_declaration) item =
   match label.pld_type with
   | { ptyp_desc = Ptyp_poly (vars, field_type); _ } ->
       context.constraints |>
@@ -1381,10 +1386,10 @@ let structure_of_label_declaration context prefix single_label
             Printf.sprintf "%s__%s" prefix label.pld_name.txt in
           let internal_name_str = Metapp.mkloc internal_name in
           let type_declaration =
-            Ast_helper.Type.mk internal_name_str
-              ~params:(List.map (fun x -> x, Asttypes.Invariant)
+            Ppxlib.Ast_helper.Type.mk internal_name_str
+              ~params:(List.map (fun x -> x, Ppxlib.Asttypes.Invariant)
                  context.original_vars)
-              ~kind:(Ptype_record [Ast_helper.Type.field
+              ~kind:(Ptype_record [Ppxlib.Ast_helper.Type.field
                 internal_name_str label.pld_type]) in
           internal_name, internal_name_str, [type_declaration] in
       let destructed = ReflValueVal.record [Lident internal_label.txt, item] in
@@ -1404,10 +1409,10 @@ let structure_of_label_declaration context prefix single_label
             Refl.ForallDestruct {
               desc = substructure;
               destruct = fun
-                [%p Ast_helper.Pat.record
+                [%p Ppxlib.Ast_helper.Pat.record
                   [Metapp.lid_of_str internal_label,
-                    Ast_helper.Pat.var internal_label] Closed] ->
-                [%e Ast_helper.Exp.ident
+                    Ppxlib.Ast_helper.Pat.var internal_label] Closed] ->
+                [%e Ppxlib.Ast_helper.Exp.ident
                    (Metapp.lid_of_str internal_label)];
             } in
           Refl.Poly {
@@ -1415,7 +1420,7 @@ let structure_of_label_declaration context prefix single_label
             variables = [%e variables];
             destruct = { forall_destruct };
             construct = fun { forall_construct } ->
-              [%e Ast_helper.Exp.record [Metapp.lid_of_str internal_label,
+              [%e Ppxlib.Ast_helper.Exp.record [Metapp.lid_of_str internal_label,
                 [%expr fun x -> forall_construct
                   [%e count_length.exp]
                   [%e count_append.exp] substructure x]]
@@ -1434,11 +1439,11 @@ let structure_of_label_declaration context prefix single_label
       (structure, desc), ((item, field_type), [])
 
 let make_constructor_kind context
-    (constructor : Parsetree.constructor_declaration)
-    (args : Parsetree.core_type list) :
-    Metapp.value list * Parsetree.core_type * Parsetree.core_type list *
-    Parsetree.expression * Metapp.value list *
-    Parsetree.type_declaration list =
+    (constructor : Ppxlib.constructor_declaration)
+    (args : Ppxlib.core_type list) :
+    Metapp.value list * Ppxlib.core_type * Ppxlib.core_type list *
+    Ppxlib.expression * Metapp.value list *
+    Ppxlib.type_declaration list =
   let items = List.mapi (fun i _ -> Metapp.Value.var (item i)) args in
   match constructor.pcd_args with
   | Pcstr_tuple _ ->
@@ -1475,7 +1480,7 @@ let make_constructor_kind context
       destructs,
       type_declarations
 
-let make_constructor_args (constructor : Parsetree.constructor_declaration)
+let make_constructor_args (constructor : Ppxlib.constructor_declaration)
     items =
   match items with
   | [] -> None
@@ -1485,7 +1490,7 @@ let make_constructor_args (constructor : Parsetree.constructor_declaration)
         | Pcstr_tuple _ -> Metapp.Value.tuple items
         | Pcstr_record labels ->
            let fields =
-             List.map2 begin fun (label : Parsetree.label_declaration) x ->
+             List.map2 begin fun (label : Ppxlib.label_declaration) x ->
                Longident.Lident label.pld_name.txt, x
              end labels items in
            Metapp.Value.record fields in
@@ -1495,7 +1500,7 @@ let tuple_of_types types =
   match types with
   | [] -> [%type: unit]
   | [ty] -> ty
-  | _ -> Ast_helper.Typ.tuple types
+  | _ -> Ppxlib.Ast_helper.Typ.tuple types
 
 let rec fold_map_aux f list acc_list accu =
   match list with
@@ -1508,12 +1513,12 @@ let fold_map f list accu =
   fold_map_aux f list [] accu
 
 let structure_of_exists single_constructor ctor_count i context
-    (constructor : Parsetree.constructor_declaration)
-    (result : Parsetree.core_type)
-    : (((Parsetree.core_type * Parsetree.expression)
-        * Parsetree.core_type) *
-      (Parsetree.case * Parsetree.case)) *
-    (Parsetree.type_declaration list * Parsetree.type_extension list) =
+    (constructor : Ppxlib.constructor_declaration)
+    (result : Ppxlib.core_type)
+    : (((Ppxlib.core_type * Ppxlib.expression)
+        * Ppxlib.core_type) *
+      (Ppxlib.case * Ppxlib.case)) *
+    (Ppxlib.type_declaration list * Ppxlib.type_extension list) =
   let result_args =
     match result with
     | { ptyp_desc = Ptyp_constr (_, args); _ } -> args
@@ -1551,7 +1556,7 @@ let structure_of_exists single_constructor ctor_count i context
           else
             let (_, indexer) = StringIndexer.add var indexer in
             (var, indexer) in
-    (Ast_helper.Typ.var var, indexer) in
+    (Ppxlib.Ast_helper.Typ.var var, indexer) in
   let args = args_of_constructor constructor in
   let (parameters, renamed_args), free_variables =
     let (parameters, indexer) =
@@ -1594,13 +1599,13 @@ let structure_of_exists single_constructor ctor_count i context
       let res =
         type_constr_of_string branch_name ~args:result_args in
       let kind =
-        Parsetree.Ptype_variant [Ast_helper.Type.constructor
+        Ppxlib.Ptype_variant [Ppxlib.Ast_helper.Type.constructor
            (Metapp.mkloc branch_constructor)
            ~args:(Pcstr_tuple args) ~res] in
       Metapp.Value.construct (Lident branch_constructor) items,
       branch_name,
-      Ast_helper.Type.mk (Metapp.mkloc branch_name) ~kind
-        ~params:(List.map (fun x -> x, Asttypes.Invariant)
+      Ppxlib.Ast_helper.Type.mk (Metapp.mkloc branch_name) ~kind
+        ~params:(List.map (fun x -> x, Ppxlib.Asttypes.Invariant)
           context.type_vars) :: type_declarations in
   let type_args = List.map type_constr_of_string context.type_args in
   let value_type =
@@ -1617,7 +1622,7 @@ let structure_of_exists single_constructor ctor_count i context
   let parameter_sequence =
     type_sequence_of_list
       (List.init free_variable_count
-         (fun i -> Ast_helper.Typ.var (type_arg i))) in
+         (fun i -> Ppxlib.Ast_helper.Typ.var (type_arg i))) in
   let type_extensions, constraints_pattern =
     if parameters = [] then
       [], ReflValueVal.construct (refl_dot "NoConstraints") []
@@ -1625,15 +1630,15 @@ let structure_of_exists single_constructor ctor_count i context
       let constraints = Printf.sprintf "Constraints_%s" branch_name in
       let constraints_pattern =
         ReflValueVal.construct (Lident constraints) [] in
-      [(Ast_helper.Te.mk (Metapp.mkloc (refl_dot "gadt_constraints"))
+      [(Ppxlib.Ast_helper.Te.mk (Metapp.mkloc (refl_dot "gadt_constraints"))
           ~params:[[%type: _], Invariant; [%type: _], Invariant]
-           [Ast_helper.Te.constructor (Metapp.mkloc constraints)
+           [Ppxlib.Ast_helper.Te.constructor (Metapp.mkloc constraints)
               (Pext_decl (Pcstr_tuple [], Some
                 [%type: ([%t parameter_tuple], [%t parameter_sequence])
                   Refl.gadt_constraints]))])], constraints_pattern in
   let parameter_type_vars =
     parameters |> List.map begin fun (index, _) ->
-      Ast_helper.Typ.var (type_arg index)
+      Ppxlib.Ast_helper.Typ.var (type_arg index)
     end in
   let parameter_type_vars_tuple = tuple_of_types parameter_type_vars in
   context.rev_eqs := parameter_type_vars_tuple :: !(context.rev_eqs);
@@ -1698,8 +1703,8 @@ let structure_of_exists single_constructor ctor_count i context
            Refl.ExistsConstruct {
              kind;
              construct =
-               [%e Ast_helper.Exp.function_
-                  [Ast_helper.Exp.case decomposed.pat composed.exp]];}]] in
+               [%e Ppxlib.Ast_helper.Exp.function_
+                  [Ppxlib.Ast_helper.Exp.case decomposed.pat composed.exp]];}]] in
        let destruct =
          [%e List.fold_right
             (fun txt e -> Metapp.Exp.newtype (Metapp.mkloc txt) e)
@@ -1729,15 +1734,15 @@ let structure_of_exists single_constructor ctor_count i context
   let choice = ReflValueVal.binary_choice_of_int i ctor_count composed in
   let signature = (type_declarations, type_extensions) in
   (((ty, desc), value_type),
-    (Ast_helper.Exp.case choice.pat constructor_with_args.exp,
-      Ast_helper.Exp.case constructor_with_args.pat choice.exp)), signature
+    (Ppxlib.Ast_helper.Exp.case choice.pat constructor_with_args.exp,
+      Ppxlib.Ast_helper.Exp.case constructor_with_args.pat choice.exp)), signature
 
 let structure_of_constructor single_constructor context count i
-    (constructor : Parsetree.constructor_declaration)
-    : (((Parsetree.core_type * Parsetree.expression)
-        * Parsetree.core_type) *
-         (Parsetree.case * Parsetree.case))
-    * (Parsetree.type_declaration list * Parsetree.type_extension list) =
+    (constructor : Ppxlib.constructor_declaration)
+    : (((Ppxlib.core_type * Ppxlib.expression)
+        * Ppxlib.core_type) *
+         (Ppxlib.case * Ppxlib.case))
+    * (Ppxlib.type_declaration list * Ppxlib.type_extension list) =
   try
     let eqs, context = extract_gadt_equalities context constructor in
     let args = args_of_constructor constructor in
@@ -1757,7 +1762,7 @@ let structure_of_constructor single_constructor context count i
     let attributes =
       match constructor.pcd_args with
       | Pcstr_record labels when
-        List.exists (fun (label : Parsetree.label_declaration) ->
+        List.exists (fun (label : Ppxlib.label_declaration) ->
           match label.pld_type with
           | { ptyp_desc = Ptyp_poly _; _ } -> true
           | _ -> false ) labels ->
@@ -1788,8 +1793,8 @@ let structure_of_constructor single_constructor context count i
       [%type: [%t type_sequence_of_list types]
          * [%t type_sequence_of_list eqs]] in
     (((ty, desc), choice_ty),
-      (Ast_helper.Exp.case choice.pat construct.exp,
-        Ast_helper.Exp.case construct.pat choice.exp)), (type_declarations, [])
+      (Ppxlib.Ast_helper.Exp.case choice.pat construct.exp,
+        Ppxlib.Ast_helper.Exp.case construct.pat choice.exp)), (type_declarations, [])
   with (Exists (loc, name)) ->
     match constructor.pcd_res with
     | Some ty ->
@@ -1804,9 +1809,9 @@ let structure_of_constructor single_constructor context count i
               "The type variable '%s is unbound in this type declaration." name
 
 let structure_of_constr context
-    (constructors : Parsetree.constructor_declaration list)
-    : (Parsetree.core_type * Parsetree.expression) *
-      (Parsetree.type_declaration list * Parsetree.type_extension list) =
+    (constructors : Ppxlib.constructor_declaration list)
+    : (Ppxlib.core_type * Ppxlib.expression) *
+      (Ppxlib.type_declaration list * Ppxlib.type_extension list) =
   let single_constructor = is_singleton constructors in
   let count = List.length constructors in
   let cases =
@@ -1824,7 +1829,7 @@ let structure_of_constr context
     let left = subst_free_variables instantiate left in
     let right = subst_free_variables instantiate right in
     let arrow_ty = [%type: [%t left] -> [%t right]] in
-    [%expr ([%e Ast_helper.Exp.function_ cases] : [%t arrow_ty])] in
+    [%expr ([%e Ppxlib.Ast_helper.Exp.function_ cases] : [%t arrow_ty])] in
   context.constraints |> Metapp.mutate
     (Constraints.add_direct_kind "Constr");
   let expr =
@@ -1839,9 +1844,9 @@ let structure_of_constr context
   ([%type: [`Constr of [%t binary_type_of_list types]]], expr),
   (type_declarations, type_extensions)
 
-let structure_of_record context (labels : Parsetree.label_declaration list)
-    : (Parsetree.core_type * Parsetree.expression) *
-    (Parsetree.type_declaration list * Parsetree.type_extension list) =
+let structure_of_record context (labels : Ppxlib.label_declaration list)
+    : (Ppxlib.core_type * Ppxlib.expression) *
+    (Ppxlib.type_declaration list * Ppxlib.type_extension list) =
   let items =
     List.init (List.length labels) (fun i -> ReflValueVal.var (item i)) in
   context.constraints |> Metapp.mutate
@@ -1858,24 +1863,24 @@ let structure_of_record context (labels : Parsetree.label_declaration list)
   let sequence = ReflValueVal.sequence_of_list destructs in
   let record =
     ReflValueVal.record
-      (List.map2 (fun (label : Parsetree.label_declaration) item ->
+      (List.map2 (fun (label : Ppxlib.label_declaration) item ->
         (Longident.Lident label.pld_name.txt, item))
         labels items) in
   let expr =
     [%expr Refl.Record {
        structure = [%e ReflValueExp.record_of_list descs];
-       construct = [%e Ast_helper.Exp.function_
-         [Ast_helper.Exp.case sequence.pat record.exp]];
-       destruct = [%e Ast_helper.Exp.function_
-         [Ast_helper.Exp.case record.pat sequence.exp]];
+       construct = [%e Ppxlib.Ast_helper.Exp.function_
+         [Ppxlib.Ast_helper.Exp.case sequence.pat record.exp]];
+       destruct = [%e Ppxlib.Ast_helper.Exp.function_
+         [Ppxlib.Ast_helper.Exp.case record.pat sequence.exp]];
      }] in
   ([%type: [`Record of [%t type_sequence_of_list types]]], expr),
   (type_declarations, [])
 
-let structure_of_type_declaration context (td : Parsetree.type_declaration)
-    : (Parsetree.core_type * Parsetree.expression) *
-    (Parsetree.type_declaration list * Parsetree.type_extension list) =
-  Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
+let structure_of_type_declaration context (td : Ppxlib.type_declaration)
+    : (Ppxlib.core_type * Ppxlib.expression) *
+    (Ppxlib.type_declaration list * Ppxlib.type_extension list) =
+  Ppxlib.Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
   let (structure, unwrapped_desc), sides =
     match td.ptype_kind with
     | Ptype_variant constructors ->
@@ -1885,12 +1890,12 @@ let structure_of_type_declaration context (td : Parsetree.type_declaration)
     | Ptype_abstract ->
         begin match td.ptype_manifest with
         | None ->
-            Location.raise_errorf ~loc:!Ast_helper.default_loc
+            Location.raise_errorf ~loc:!Ppxlib.Ast_helper.default_loc
               "refl cannot be derived for fully abstract types"
         | Some ty -> (structure_of_type context ty), ([], [])
         end
     | Ptype_open ->
-        Location.raise_errorf ~loc:!Ast_helper.default_loc
+        Location.raise_errorf ~loc:!Ppxlib.Ast_helper.default_loc
           "refl cannot be derived for open types" in
   let structure = [%type: [`Name of [%t structure]]] in
   let unwrapped_desc = [%expr Refl.Name {
@@ -1903,76 +1908,81 @@ let structure_of_type_declaration context (td : Parsetree.type_declaration)
 type type_structure = {
     type_info : type_info;
     context : context;
-    arity_type : Parsetree.core_type;
-    structure : Parsetree.core_type;
-    unwrapped_desc : Parsetree.expression;
+    arity_type : Ppxlib.core_type;
+    structure : Ppxlib.core_type;
+    unwrapped_desc : Ppxlib.expression;
     constraints : Constraints.t;
     rec_type_refs : IntSet.t;
   }
 
 let subgadt_mapper context type_extensions =
   let type_extension_count = ref 0 in
-  let typ mapper t =
-    match Ast_mapper.default_mapper.typ mapper t with
-    | [%type: [`SubGADT of [%t? ty]]] ->
-        if context.name = None then
-          ty
-        else
-          t
-    | t -> t in
-  let expr mapper e =
-    match Ast_mapper.default_mapper.expr mapper e with
-    | [%expr Refl.SubGADT ([%e? desc] : [%t? base] -> [%t? sub])] ->
-        begin match context.name with
-        | None -> desc
-        | Some name ->
-          let index = !type_extension_count in
-          type_extension_count := succ index;
-          let constructor_name = Printf.sprintf "%s__sub_%d"
-            (String.capitalize_ascii name) index in
-          let constructor =
-            Metapp.Value.construct (Lident constructor_name) [] in
-          type_extensions :=
-            Ast_helper.Te.mk (Metapp.mkloc (refl_dot "sub_gadt_ext"))
-         ~params:[[%type: _], Invariant; [%type: _], Invariant]
-         [Ast_helper.Te.constructor (Metapp.mkloc constructor_name)
-            (Pext_decl (Pcstr_tuple [], Some
-              [%type: ([%t base], [%t sub])
-                Refl.sub_gadt_ext]))] ::
-            !type_extensions;
-          [%expr
-             let sub_gadt_functional : type gadt sub_gadt0 sub_gadt1 .
-                (gadt, sub_gadt0) Refl.sub_gadt_ext ->
-                (gadt, sub_gadt1) Refl.sub_gadt_ext ->
-                (sub_gadt0, sub_gadt1) Refl.eq =
-              fun sub sub' ->
-                match sub, sub' with
-                | [%p constructor.pat], [%p constructor.pat] -> Eq
-                | _ -> assert false in
-             Refl.SubGADT {
-            desc = [%e desc];
-            sub_gadt = {
-              Refl.sub_gadt_ext = [%e constructor.exp];
-              sub_gadt_functional }}]
-        end
-    | e -> e in
-  { Ast_mapper.default_mapper with typ; expr }
+  let mapper = object
+    inherit Ppxlib.Ast_traverse.map as super
+
+    method! core_type ty =
+      match super#core_type ty with
+      | [%type: [`SubGADT of [%t? ty']]] ->
+          if context.name = None then
+            ty'
+          else
+            ty
+      | ty -> ty
+
+    method! expression e =
+      match super#expression e with
+      | [%expr Refl.SubGADT ([%e? desc] : [%t? base] -> [%t? sub])] ->
+          begin match context.name with
+          | None -> desc
+          | Some name ->
+            let index = !type_extension_count in
+            type_extension_count := succ index;
+            let constructor_name = Printf.sprintf "%s__sub_%d"
+              (String.capitalize_ascii name) index in
+            let constructor =
+              Metapp.Value.construct (Lident constructor_name) [] in
+            type_extensions :=
+              Ppxlib.Ast_helper.Te.mk (Metapp.mkloc (refl_dot "sub_gadt_ext"))
+           ~params:[[%type: _], Invariant; [%type: _], Invariant]
+           [Ppxlib.Ast_helper.Te.constructor (Metapp.mkloc constructor_name)
+              (Pext_decl (Pcstr_tuple [], Some
+                [%type: ([%t base], [%t sub])
+                  Refl.sub_gadt_ext]))] ::
+              !type_extensions;
+            [%expr
+               let sub_gadt_functional : type gadt sub_gadt0 sub_gadt1 .
+                  (gadt, sub_gadt0) Refl.sub_gadt_ext ->
+                  (gadt, sub_gadt1) Refl.sub_gadt_ext ->
+                  (sub_gadt0, sub_gadt1) Refl.eq =
+                fun sub sub' ->
+                  match sub, sub' with
+                  | [%p constructor.pat], [%p constructor.pat] -> Eq
+                  | _ -> assert false in
+               Refl.SubGADT {
+              desc = [%e desc];
+              sub_gadt = {
+                Refl.sub_gadt_ext = [%e constructor.exp];
+                sub_gadt_functional }}]
+          end
+      | e -> e
+  end in
+  mapper
 
 let type_structure_of_type_info rec_types type_info =
   let { arity; td; _ } = type_info in
-  Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
+  Ppxlib.Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
   let context = context_of_type_declaration td rec_types in
   let (structure, unwrapped_desc), (type_declarations, type_extensions) =
     structure_of_type_declaration context td in
   let arity_type = peano_type_of_int arity in
   let type_extensions = ref type_extensions in
   let mapper = subgadt_mapper context type_extensions in
-  let unwrapped_desc = mapper.expr mapper unwrapped_desc in
-  let structure = mapper.typ mapper structure in
+  let unwrapped_desc = mapper#expression unwrapped_desc in
+  let structure = mapper#core_type structure in
   let declarations = [
-    Ast_helper.Type.mk (Metapp.mkloc context.type_names.arity)
+    Ppxlib.Ast_helper.Type.mk (Metapp.mkloc context.type_names.arity)
       ~manifest:arity_type;
-    Ast_helper.Type.mk (Metapp.mkloc context.type_names.structure)
+    Ppxlib.Ast_helper.Type.mk (Metapp.mkloc context.type_names.structure)
       ~manifest:structure;
   ] in
   let arity_type = type_constr_of_string context.type_names.arity in
@@ -1985,9 +1995,9 @@ let type_structure_of_type_info rec_types type_info =
         Constraints.add_exists_kind exists constraints in
   let type_extensions = !type_extensions in
   let type_extensions =
-    Ast_helper.Te.mk (Metapp.mkloc (refl_dot "refl"))
+    Ppxlib.Ast_helper.Te.mk (Metapp.mkloc (refl_dot "refl"))
       ~params:[[%type: _], Invariant]
-      [Ast_helper.Te.constructor
+      [Ppxlib.Ast_helper.Te.constructor
         (Metapp.mkloc context.type_names.refl_ctor)
         (Pext_decl (Pcstr_tuple [], Some
           [%type: [%t context.type_expr] Refl.refl]))]
@@ -1999,20 +2009,20 @@ let type_structure_of_type_info rec_types type_info =
 let types_of_transfers transfers =
   let present = [%type: 'present] in
   let unknown = [%type: 'unknown] in
-  let params = [present, Asttypes.Invariant; unknown, Asttypes.Invariant] in
+  let params = [present, Ppxlib.Asttypes.Invariant; unknown, Ppxlib.Asttypes.Invariant] in
   transfers |> List.map begin fun (name, transfer) ->
     let manifest = transfer |> make_transfer present unknown compose_type in
-    Ast_helper.Type.mk ~params (Metapp.mkloc name) ~manifest
+    Ppxlib.Ast_helper.Type.mk ~params (Metapp.mkloc name) ~manifest
   end
 
 let funs_of_transfers transfers =
   transfers |> List.map begin fun (name, transfer) ->
     let str = Metapp.mkloc name in
-    Ast_helper.Val.mk str
+    Ppxlib.Ast_helper.Val.mk str
       [%type: 'present -> 'unknown ->
-        [%t Ast_helper.Typ.constr (Metapp.lid_of_str str)
+        [%t Ppxlib.Ast_helper.Typ.constr (Metapp.lid_of_str str)
           [[%type: 'present]; [%type: 'unknown]]]],
-    Ast_helper.Vb.mk (Ast_helper.Pat.var str)
+    Ppxlib.Ast_helper.Vb.mk (Ppxlib.Ast_helper.Pat.var str)
       [%expr fun refl__present refl__absent ->
         [%e transfer |> make_transfer [%expr refl__present] [%expr refl__absent]
           compose_expr]]
@@ -2022,25 +2032,25 @@ let funs_of_transfers transfers =
 
 let module_of_type_structure rec_group constraints i type_structure
     :
-    ((Parsetree.type_declaration list * Parsetree.type_declaration list) *
-       (Parsetree.value_description * Parsetree.value_binding) list) *
-    (Parsetree.signature_item * Parsetree.value_binding) =
+    ((Ppxlib.type_declaration list * Ppxlib.type_declaration list) *
+       (Ppxlib.value_description * Ppxlib.value_binding) list) *
+    (Ppxlib.signature_item * Ppxlib.value_binding) =
   let { type_info = { td; desc_name; arity; _ };
     structure; unwrapped_desc; context; _ } = type_structure in
-  Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
+  Ppxlib.Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
   let types = type_sequence_of_list context.type_vars in
   let rec_group_type = type_constr_of_string context.type_names.rec_group in
   let rec_group_decl =
     let (declared, manifest) = !rec_group in
     if not declared then
       rec_group := (true, rec_group_type);
-    Ast_helper.Type.mk (Metapp.mkloc context.type_names.rec_group)
+    Ppxlib.Ast_helper.Type.mk (Metapp.mkloc context.type_names.rec_group)
       ~manifest in
   let constraints = constraints i in
   let kinds = type_constr_of_string context.type_names.kinds in
   let kinds_decl =
     let manifest = Constraints.Kinds.to_type (fst constraints) in
-    Ast_helper.Type.mk (Metapp.mkloc context.type_names.kinds)
+    Ppxlib.Ast_helper.Type.mk (Metapp.mkloc context.type_names.kinds)
       ~manifest in
   let variable_transfers =
     Constraints.Variables.make_transfers td.ptype_name.txt arity
@@ -2054,9 +2064,9 @@ let module_of_type_structure rec_group constraints i type_structure
     type_constr_of_string context.type_names.gadt ~args:context.type_vars in
   let gadt_decl =
     let params =
-      context.type_vars |> List.map (fun ty -> (ty, Asttypes.Invariant)) in
+      context.type_vars |> List.map (fun ty -> (ty, Ppxlib.Asttypes.Invariant)) in
     let manifest = type_sequence_of_list (List.rev !(context.rev_eqs)) in
-    Ast_helper.Type.mk (Metapp.mkloc context.type_names.gadt) ~manifest
+    Ppxlib.Ast_helper.Type.mk (Metapp.mkloc context.type_names.gadt) ~manifest
       ~params in
   let desc_type =
     [%type:
@@ -2070,13 +2080,13 @@ let module_of_type_structure rec_group constraints i type_structure
           (fun i -> "absent_direct" ^ string_of_int i)],
         [%t gadt]) Refl.desc] in
   let desc_sig =
-    Ast_helper.Sig.value (Ast_helper.Val.mk (Metapp.mkloc desc_name)
+    Ppxlib.Ast_helper.Sig.value (Ppxlib.Ast_helper.Val.mk (Metapp.mkloc desc_name)
       desc_type) in
   let type_loc = List.map Metapp.mkloc context.type_args in
   let desc =
     List.fold_right Metapp.Exp.newtype type_loc unwrapped_desc in
   let desc_def =
-    Ast_helper.Vb.mk
+    Ppxlib.Ast_helper.Vb.mk
       [%pat? ([%p Metapp.Pat.var desc_name] :
         [%t Metapp.Typ.poly type_loc desc_type])]
       desc
@@ -2085,7 +2095,7 @@ let module_of_type_structure rec_group constraints i type_structure
   ((transfers_types, [rec_group_decl; kinds_decl; gadt_decl]), transfers_funs),
   (desc_sig, desc_def)
 
-let rec_types_of_type_info (rec_flag : Asttypes.rec_flag) type_infos =
+let rec_types_of_type_info (rec_flag : Ppxlib.Asttypes.rec_flag) type_infos =
   match rec_flag with
   | Nonrecursive -> None
   | Recursive ->
@@ -2094,12 +2104,12 @@ let rec_types_of_type_info (rec_flag : Asttypes.rec_flag) type_infos =
         type_infos count)
 
 type modules = {
-    desc_sig : Parsetree.signature;
-    desc_def : Parsetree.structure;
+    desc_sig : Ppxlib.signature;
+    desc_def : Ppxlib.structure;
   }
 
 let modules_of_type_declarations (rec_flag, tds) =
-  let recursive = ref Asttypes.Nonrecursive in
+  let recursive = ref Ppxlib.Asttypes.Nonrecursive in
   let type_infos =
     tds |> List.map (type_info_of_type_declaration recursive) in
   let rec_types = rec_types_of_type_info rec_flag type_infos in
@@ -2118,7 +2128,7 @@ let modules_of_type_declarations (rec_flag, tds) =
   end in
   let rec_group_type =
     binary_type_of_list (type_structures |> List.map begin
-      fun (type_structure : type_structure) : Parsetree.core_type ->
+      fun (type_structure : type_structure) : Ppxlib.core_type ->
         [%type: [%t type_structure.arity_type] * [%t type_structure.structure]]
     end) in
 (*
@@ -2127,7 +2137,7 @@ let modules_of_type_declarations (rec_flag, tds) =
       fun (type_structure : type_structure) ->
         exp [%expr [%e expression_of_value
              (length_of_int type_structure.type_info.arity)],
-           [%e Ast_helper.Exp.ident { loc; txt =
+           [%e Ppxlib.Ast_helper.Exp.ident { loc; txt =
              Lident (type_structure.type_info.desc_name)}]]
     end) in
 *)
@@ -2147,33 +2157,33 @@ let modules_of_type_declarations (rec_flag, tds) =
 (*
   let rec_group_name = (List.hd type_structures).context.type_names.rec_group in
   let desc_sig =
-    Ast_helper.Sig.value (Ast_helper.Value.mk { loc; txt = rec_group_name }
-      (Ast_helper.Typ.constr { loc; txt = (refl_dot "rec_group") }
+    Ppxlib.Ast_helper.Sig.value (Ppxlib.Ast_helper.Value.mk { loc; txt = rec_group_name }
+      (Ppxlib.Ast_helper.Typ.constr { loc; txt = (refl_dot "rec_group") }
          [type_constr_of_string rec_group_name;
            type_constr_of_string rec_group_name])) :: desc_sig in
   let desc_bindings =
-    Ast_helper.Vb.mk (Ast_helper.Pat.var { loc; txt = rec_group_name })
+    Ppxlib.Ast_helper.Vb.mk (Ppxlib.Ast_helper.Pat.var { loc; txt = rec_group_name })
       (expression_of_value rec_group_expr) :: desc_bindings in
 *)
   let val_desc, val_bindings = List.split (List.flatten vals) in
-  let val_sig = List.map Ast_helper.Sig.value val_desc in
+  let val_sig = List.map Ppxlib.Ast_helper.Sig.value val_desc in
   let desc_def =
-    Ast_helper.Str.type_ Recursive type_declarations ::
-    List.map Ast_helper.Str.type_extension type_extensions @
-    [Ast_helper.Str.value !recursive desc_bindings] in
+    Ppxlib.Ast_helper.Str.type_ Recursive type_declarations ::
+    List.map Ppxlib.Ast_helper.Str.type_extension type_extensions @
+    [Ppxlib.Ast_helper.Str.value !recursive desc_bindings] in
   let desc_sig =
-    Ast_helper.Sig.type_ Recursive type_declarations ::
-    List.map Ast_helper.Sig.type_extension type_extensions @
+    Ppxlib.Ast_helper.Sig.type_ Recursive type_declarations ::
+    List.map Ppxlib.Ast_helper.Sig.type_extension type_extensions @
     val_sig @ desc_sig in
   let desc_def =
     if val_bindings = [] then
       desc_def
     else
-      Ast_helper.Str.value Nonrecursive val_bindings :: desc_def in
+      Ppxlib.Ast_helper.Str.value Nonrecursive val_bindings :: desc_def in
   { desc_sig; desc_def  }
 
-let make_str ~loc type_declarations : Parsetree.structure =
-  Ast_helper.with_default_loc loc @@ fun () ->
+let make_str ~loc type_declarations : Ppxlib.structure =
+  Ppxlib.Ast_helper.with_default_loc loc @@ fun () ->
   let { desc_def; _ } =
     modules_of_type_declarations type_declarations in
   let stop_doc = [%str (**/**)] in
@@ -2184,7 +2194,7 @@ let str_type_decl =
   Ppxlib.Deriving.Generator.make_noarg make_str
 *)
 
-let make_sig ~loc type_declarations : Parsetree.signature =
+let make_sig ~loc type_declarations : Ppxlib.signature =
   let { desc_sig; _ } =
     modules_of_type_declarations type_declarations in
   let stop_doc = [%sig: (**/**)] in
@@ -2194,7 +2204,7 @@ let make_sig ~loc type_declarations : Parsetree.signature =
 let sig_type_decl = Ppxlib.Deriving.Generator.make_noarg make_sig
 *)
 
-let enumerate_free_variables (ty : Parsetree.core_type)
+let enumerate_free_variables (ty : Ppxlib.core_type)
     : StringSet.t * int =
   fold_free_variables begin fun _loc var (names, anonymous) ->
     match var with
@@ -2202,13 +2212,13 @@ let enumerate_free_variables (ty : Parsetree.core_type)
     | Some name -> StringSet.add name names, anonymous
   end ty (StringSet.empty, 0)
 
-let extension ty : Parsetree.expression =
+let extension ty : Ppxlib.expression =
   let names, anonymous = enumerate_free_variables ty in
   let arity = StringSet.cardinal names + anonymous in
   let context = make_context None [] (StringIndexer.of_fresh arity) in
   let _structure, expr = structure_of_type context ty in
   let mapper = subgadt_mapper context (ref []) in
-  let expr = mapper.expr mapper expr in
+  let expr = mapper#expression expr in
   let expr =
     match !(context.free_vars) with
     | [] -> expr
@@ -2217,56 +2227,26 @@ let extension ty : Parsetree.expression =
           List.rev free_vars |>
           List.filter (fun var -> not var.bound) |>
           List.mapi begin fun i (var : free_variable) ->
-            Ast_helper.Vb.mk (Metapp.Pat.var var.name)
+            Ppxlib.Ast_helper.Vb.mk (Metapp.Pat.var var.name)
               [%expr Refl.Variable [%e ReflValueExp.variable_of_int i]]
           end in
-        Ast_helper.Exp.let_ Nonrecursive bindings expr in
+        Ppxlib.Ast_helper.Exp.let_ Nonrecursive bindings expr in
   expr
 
-let deriver_name = "refl"
+let sig_type_decl =
+  Ppxlib.Deriving.Generator.make Ppxlib.Deriving.Args.empty
+    (fun ~loc ~path:_ -> make_sig ~loc)
 
-type Ppx_derivers.deriver += Refl
-
-let () =
-  Ppx_derivers.register deriver_name Refl
-
-let expr (mapper : Ast_mapper.mapper) (e : Parsetree.expression)
-    : Parsetree.expression =
-  let e = Ast_mapper.default_mapper.expr mapper e in
-  match e.pexp_desc with
-  | Pexp_extension ({ txt; _ }, payload) when String.equal txt deriver_name ->
-      extension (Metapp.Typ.of_payload payload)
-  | _ -> e
-
-let signature (mapper : Ast_mapper.mapper) (s : Parsetree.signature)
-    : Parsetree.signature =
-  let s = Ast_mapper.default_mapper.signature mapper s in
-  s |> List.concat_map (fun (item : Parsetree.signature_item) ->
-    match item.psig_desc with
-    | Psig_type (rec_flag, type_declarations)
-      when Metapp.Type.has_deriver deriver_name type_declarations <> None ->
-        item :: make_sig ~loc:item.psig_loc (rec_flag, type_declarations)
-    | _ -> [item])
-
-let structure (mapper : Ast_mapper.mapper) (s : Parsetree.structure)
-    : Parsetree.structure =
-  let s = Ast_mapper.default_mapper.structure mapper s in
-  s |> List.concat_map (fun (item : Parsetree.structure_item) ->
-    match item.pstr_desc with
-    | Pstr_type (rec_flag, type_declarations)
-      when Metapp.Type.has_deriver deriver_name type_declarations <> None ->
-        item :: make_str ~loc:item.pstr_loc (rec_flag, type_declarations)
-    | _ -> [item])
-
-let mapper : Ast_mapper.mapper =
-  { Ast_mapper.default_mapper with expr; signature; structure }
-
-let rewriter _config _cookies : Ast_mapper.mapper =
-  mapper
+let str_type_decl =
+  Ppxlib.Deriving.Generator.make Ppxlib.Deriving.Args.empty
+    (fun ~loc ~path:_ -> make_str ~loc)
 
 let () =
-  Migrate_parsetree.Driver.register ~name:"ppx_refl"
-    (module Migrate_parsetree.OCaml_current) rewriter
+  Ppxlib.Deriving.add "refl"
+    ~sig_type_decl
+    ~str_type_decl
+    ~extension:(fun ~loc:_ ~path:_ -> extension) |>
+  Ppxlib.Deriving.ignore
 
 (*
   let var_list = ref [] in
@@ -2275,7 +2255,7 @@ let () =
     let index = !var_counter in
     let var_name = Printf.sprintf "free%d" index in
     var_list := var_name :: !var_list;
-    Ast_helper.Typ.var var_name in
+    Ppxlib.Ast_helper.Typ.var var_name in
   let table = StringHashtbl.create 17 in
   let f _ var =
     match var with
@@ -2288,14 +2268,14 @@ let () =
           result in
   let target_type = subst_free_variables f ty in
   let var_list = !var_list in
-  let arity = type_sequence_of_list (List.map Ast_helper.Typ.var var_list) in
+  let arity = type_sequence_of_list (List.map Ppxlib.Ast_helper.Typ.var var_list) in
   let ty = [%type: (
     [%t target_type], _, [%t arity], _, _, _, _, _) Refl.desc] in
   let ty =
     if var_list = [] then
       ty
     else
-      Ast_helper.Typ.poly (List.map (fun txt -> { loc; txt }) var_list) ty in
+      Ppxlib.Ast_helper.Typ.poly (List.map (fun txt -> { loc; txt }) var_list) ty in
   [%expr let result : [%t ty] = [%e expr] in result]
 *)
 (*

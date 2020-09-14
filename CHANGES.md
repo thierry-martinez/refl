@@ -1,4 +1,6 @@
-# Next version
+# v0.3.0 - Development version
+- Port to ppxlib 0.16 / ocaml-migrate-parsetree 2.0.0
+
 - hide refl definitions from ocamldoc by parenthesizing them with documentation
   stoppers (`(**/**)`).
 

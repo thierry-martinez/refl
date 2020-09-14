@@ -30,7 +30,8 @@ module Transfer = struct
     | Present -> [%type: [`Present]]
     | Absent -> [%type: [`Absent]]
     | Constr (txt, present, absent) ->
-        Ast_helper.Typ.constr { loc; txt } [to_type present; to_type absent]
+        Ppxlib.Ast_helper.Typ.constr { loc; txt }
+          [to_type present; to_type absent]
 end
 
 module PropertyOfSet (X : Set.S)
@@ -105,7 +106,7 @@ module Kinds = struct
     let row_fields = StringSet.fold add_direct_kind direct row_fields in
     let add_inherited_kind txt accu =
       Metapp.Rf.inherit_
-        (Ast_helper.Typ.constr (Metapp.mkloc txt) []) :: accu in
+        (Ppxlib.Ast_helper.Typ.constr (Metapp.mkloc txt) []) :: accu in
     let row_fields =
       LongidentSet.fold add_inherited_kind inherited row_fields in
     let row_fields =
@@ -113,7 +114,7 @@ module Kinds = struct
         [Metapp.Rf.tag (Metapp.mkloc "Absent") false []]
       else
         row_fields in
-    Ast_helper.Typ.variant row_fields Closed None
+    Ppxlib.Ast_helper.Typ.variant row_fields Closed None
 end
 
 
