@@ -1,4 +1,4 @@
-# v0.3.0 - Development version
+# v0.3.0 - 2020-09-22
 - Port to ppxlib 0.16 / ocaml-migrate-parsetree 2.0.0
 
 - hide refl definitions from ocamldoc by parenthesizing them with documentation
