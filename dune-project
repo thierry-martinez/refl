@@ -2,6 +2,7 @@
 
 (generate_opam_files true)
 
+(name refl)
 (license "BSD-2-Clause")
 (maintainers "Thierry Martinez <thierry.martinez@inria.fr>")
 (authors "Thierry Martinez <thierry.martinez@inria.fr>")
