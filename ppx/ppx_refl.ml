@@ -1348,6 +1348,9 @@ let is_singleton list =
   | [_] -> true
   | _ -> false
 
+let empty_type_annotation =
+  Ppxlib.Asttypes.NoVariance, Ppxlib.Asttypes.NoInjectivity
+
 let structure_of_label_declaration context prefix single_label
     (label : Ppxlib.label_declaration) item =
   match label.pld_type with
@@ -1387,7 +1390,7 @@ let structure_of_label_declaration context prefix single_label
           let internal_name_str = Metapp.mkloc internal_name in
           let type_declaration =
             Ppxlib.Ast_helper.Type.mk internal_name_str
-              ~params:(List.map (fun x -> x, Ppxlib.Asttypes.Invariant)
+              ~params:(List.map (fun x -> x, empty_type_annotation)
                  context.original_vars)
               ~kind:(Ptype_record [Ppxlib.Ast_helper.Type.field
                 internal_name_str label.pld_type]) in
@@ -1605,7 +1608,7 @@ let structure_of_exists single_constructor ctor_count i context
       Metapp.Value.construct (Lident branch_constructor) items,
       branch_name,
       Ppxlib.Ast_helper.Type.mk (Metapp.mkloc branch_name) ~kind
-        ~params:(List.map (fun x -> x, Ppxlib.Asttypes.Invariant)
+        ~params:(List.map (fun x -> x, empty_type_annotation)
           context.type_vars) :: type_declarations in
   let type_args = List.map type_constr_of_string context.type_args in
   let value_type =
@@ -1631,7 +1634,7 @@ let structure_of_exists single_constructor ctor_count i context
       let constraints_pattern =
         ReflValueVal.construct (Lident constraints) [] in
       [(Ppxlib.Ast_helper.Te.mk (Metapp.mkloc (refl_dot "gadt_constraints"))
-          ~params:[[%type: _], Invariant; [%type: _], Invariant]
+          ~params:[[%type: _], empty_type_annotation; [%type: _], empty_type_annotation]
            [Ppxlib.Ast_helper.Te.constructor (Metapp.mkloc constraints)
               (Pext_decl (Pcstr_tuple [], Some
                 [%type: ([%t parameter_tuple], [%t parameter_sequence])
@@ -1943,7 +1946,7 @@ let subgadt_mapper context type_extensions =
               Metapp.Value.construct (Lident constructor_name) [] in
             type_extensions :=
               Ppxlib.Ast_helper.Te.mk (Metapp.mkloc (refl_dot "sub_gadt_ext"))
-           ~params:[[%type: _], Invariant; [%type: _], Invariant]
+           ~params:[[%type: _], empty_type_annotation; [%type: _], empty_type_annotation]
            [Ppxlib.Ast_helper.Te.constructor (Metapp.mkloc constructor_name)
               (Pext_decl (Pcstr_tuple [], Some
                 [%type: ([%t base], [%t sub])
@@ -1996,7 +1999,7 @@ let type_structure_of_type_info rec_types type_info =
   let type_extensions = !type_extensions in
   let type_extensions =
     Ppxlib.Ast_helper.Te.mk (Metapp.mkloc (refl_dot "refl"))
-      ~params:[[%type: _], Invariant]
+      ~params:[[%type: _], empty_type_annotation]
       [Ppxlib.Ast_helper.Te.constructor
         (Metapp.mkloc context.type_names.refl_ctor)
         (Pext_decl (Pcstr_tuple [], Some
@@ -2009,7 +2012,7 @@ let type_structure_of_type_info rec_types type_info =
 let types_of_transfers transfers =
   let present = [%type: 'present] in
   let unknown = [%type: 'unknown] in
-  let params = [present, Ppxlib.Asttypes.Invariant; unknown, Ppxlib.Asttypes.Invariant] in
+  let params = [present, empty_type_annotation; unknown, empty_type_annotation] in
   transfers |> List.map begin fun (name, transfer) ->
     let manifest = transfer |> make_transfer present unknown compose_type in
     Ppxlib.Ast_helper.Type.mk ~params (Metapp.mkloc name) ~manifest
@@ -2064,7 +2067,7 @@ let module_of_type_structure rec_group constraints i type_structure
     type_constr_of_string context.type_names.gadt ~args:context.type_vars in
   let gadt_decl =
     let params =
-      context.type_vars |> List.map (fun ty -> (ty, Ppxlib.Asttypes.Invariant)) in
+      context.type_vars |> List.map (fun ty -> (ty, empty_type_annotation)) in
     let manifest = type_sequence_of_list (List.rev !(context.rev_eqs)) in
     Ppxlib.Ast_helper.Type.mk (Metapp.mkloc context.type_names.gadt) ~manifest
       ~params in

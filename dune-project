@@ -9,7 +9,7 @@
 (homepage "https://github.com/thierry-martinez/refl")
 (bug_reports "https://github.com/thierry-martinez/refl")
 (documentation "https://github.com/thierry-martinez/refl")
-(version "0.3.0")
+(version "0.4.0")
 
 (package
  (name refl)
@@ -18,11 +18,11 @@
 PPX deriver for reflection
 ")
  (depends
-  (ocaml (and (>= 4.03.0) (< 4.12.0)))
+  (ocaml (>= 4.08.0))
   (dune (>= 1.11.0))
   (stdcompat (>= 14))
   (fix (>= 20200131))
-  (metapp (>= 0.3.0))
-  (metaquot (>= 0.3.0))
+  (metapp (>= 0.4.0))
+  (metaquot (>= 0.4.0))
   (traverse (>= 0.3.0))
   (odoc (and :with-doc (>= 1.5.1)))))
