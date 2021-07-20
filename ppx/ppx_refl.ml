@@ -524,6 +524,15 @@ let subst_free_variables
 
 exception Exists of Location.t * string option
 
+let () =
+  Printexc.register_printer (fun exc ->
+    match exc with
+    | Exists (loc, name) ->
+        Some (Format.asprintf "@[Exists@ (@[%a@],@[%a@])@]"
+          Location.print_loc loc (Format.pp_print_option Format.pp_print_string)
+          name)
+    | _ -> None)
+
 let subst_type_vars_opt map _loc name =
   Option.bind name @@ fun name ->
   Option.bind (StringMap.find_opt name map) @@ fun index ->
@@ -1811,10 +1820,12 @@ let structure_of_constructor single_constructor context count i
             Location.raise_errorf ~loc
               "The type variable '%s is unbound in this type declaration." name
 
+let temp_binding_count = ref 0
+
 let structure_of_constr context
     (constructors : Ppxlib.constructor_declaration list)
     : (Ppxlib.core_type * Ppxlib.expression) *
-      (Ppxlib.type_declaration list * Ppxlib.type_extension list) =
+      (Ppxlib.type_declaration list * Ppxlib.type_extension list * Ppxlib.structure) =
   let single_constructor = is_singleton constructors in
   let count = List.length constructors in
   let cases =
@@ -1833,11 +1844,32 @@ let structure_of_constr context
     let right = subst_free_variables instantiate right in
     let arrow_ty = [%type: [%t left] -> [%t right]] in
     [%expr ([%e Ppxlib.Ast_helper.Exp.function_ cases] : [%t arrow_ty])] in
+  let bindings, descs =
+    if context.type_vars = [] then
+    List.fold_left_map (fun bindings ((cstr : Ppxlib.constructor_declaration), desc) ->
+      if cstr.pcd_args = Pcstr_tuple [] && cstr.pcd_res = None then
+        let temp_binding_index = !temp_binding_count in
+        temp_binding_count := succ temp_binding_index;
+        let construct_name = Printf.sprintf "constructor%d" temp_binding_index in
+        [%stri let [%p Metapp.Pat.var construct_name] = [%e desc]
+            (*assert false
+           let module M = struct let v = [%e desc] end in
+           let module T = struct module type S = module type of M end in
+           let module (N : T.S) = struct let v = assert false end in
+           let (m : (module T.S)) = if Random.int 2 < 1 then (module M) else (module N) in
+           let module M' = (val m) in
+           M'.v*)] :: bindings,
+        [%expr Metapp.Exp.var construct_name]
+      else
+        bindings, desc)
+      [] (List.combine constructors descs)
+    else
+      [], descs in
   context.constraints |> Metapp.mutate
     (Constraints.add_direct_kind "Constr");
   let expr =
     [%expr Refl.Constr {
-      constructors = [%e ReflValueExp.binary_choices_of_list descs];
+      constructors = assert false (* [%e ReflValueExp.binary_choices_of_list descs] *);
       construct = [%e make_fun_type choice_ty context.type_expr construct];
       destruct = [%e make_fun_type context.type_expr choice_ty destruct];
     }] in
@@ -1845,11 +1877,11 @@ let structure_of_constr context
   let type_declarations = List.flatten type_declarations in
   let type_extensions = List.flatten type_extensions in
   ([%type: [`Constr of [%t binary_type_of_list types]]], expr),
-  (type_declarations, type_extensions)
+  (type_declarations, type_extensions, bindings)
 
 let structure_of_record context (labels : Ppxlib.label_declaration list)
     : (Ppxlib.core_type * Ppxlib.expression) *
-    (Ppxlib.type_declaration list * Ppxlib.type_extension list) =
+    (Ppxlib.type_declaration list * Ppxlib.type_extension list * 'a list) =
   let items =
     List.init (List.length labels) (fun i -> ReflValueVal.var (item i)) in
   context.constraints |> Metapp.mutate
@@ -1878,11 +1910,11 @@ let structure_of_record context (labels : Ppxlib.label_declaration list)
          [Ppxlib.Ast_helper.Exp.case record.pat sequence.exp]];
      }] in
   ([%type: [`Record of [%t type_sequence_of_list types]]], expr),
-  (type_declarations, [])
+  (type_declarations, [], [])
 
 let structure_of_type_declaration context (td : Ppxlib.type_declaration)
     : (Ppxlib.core_type * Ppxlib.expression) *
-    (Ppxlib.type_declaration list * Ppxlib.type_extension list) =
+    (Ppxlib.type_declaration list * Ppxlib.type_extension list * Ppxlib.structure_item list) =
   Ppxlib.Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
   let (structure, unwrapped_desc), sides =
     match td.ptype_kind with
@@ -1895,7 +1927,7 @@ let structure_of_type_declaration context (td : Ppxlib.type_declaration)
         | None ->
             Location.raise_errorf ~loc:!Ppxlib.Ast_helper.default_loc
               "refl cannot be derived for fully abstract types"
-        | Some ty -> (structure_of_type context ty), ([], [])
+        | Some ty -> (structure_of_type context ty), ([], [], [])
         end
     | Ptype_open ->
         Location.raise_errorf ~loc:!Ppxlib.Ast_helper.default_loc
@@ -1975,7 +2007,7 @@ let type_structure_of_type_info rec_types type_info =
   let { arity; td; _ } = type_info in
   Ppxlib.Ast_helper.with_default_loc td.ptype_loc @@ fun () ->
   let context = context_of_type_declaration td rec_types in
-  let (structure, unwrapped_desc), (type_declarations, type_extensions) =
+  let (structure, unwrapped_desc), (type_declarations, type_extensions, value_bindings) =
     structure_of_type_declaration context td in
   let arity_type = peano_type_of_int arity in
   let type_extensions = ref type_extensions in
@@ -2005,7 +2037,7 @@ let type_structure_of_type_info rec_types type_info =
         (Pext_decl (Pcstr_tuple [], Some
           [%type: [%t context.type_expr] Refl.refl]))]
   :: type_extensions in
-  ((declarations @ type_declarations), type_extensions),
+  ((declarations @ type_declarations), (type_extensions, value_bindings)),
   { type_info; context; arity_type; structure; unwrapped_desc; constraints;
     rec_type_refs = !(context.rec_type_refs) }
 
@@ -2146,7 +2178,9 @@ let modules_of_type_declarations (rec_flag, tds) =
 *)
   let type_declarations, type_extensions = List.split signature in
   let type_declarations = List.flatten type_declarations in
+  let type_extensions, value_bindings = List.split type_extensions in
   let type_extensions = List.flatten type_extensions in
+  let value_bindings = List.flatten value_bindings in
   let desc =
     List.mapi
       (module_of_type_structure (ref (false, rec_group_type)) constraints)
@@ -2173,6 +2207,7 @@ let modules_of_type_declarations (rec_flag, tds) =
   let desc_def =
     Ppxlib.Ast_helper.Str.type_ Recursive type_declarations ::
     List.map Ppxlib.Ast_helper.Str.type_extension type_extensions @
+    value_bindings @
     [Ppxlib.Ast_helper.Str.value !recursive desc_bindings] in
   let desc_sig =
     Ppxlib.Ast_helper.Sig.type_ Recursive type_declarations ::
