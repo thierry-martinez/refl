@@ -1859,7 +1859,7 @@ let structure_of_constr context
            let (m : (module T.S)) = if Random.int 2 < 1 then (module M) else (module N) in
            let module M' = (val m) in
            M'.v*)] :: bindings,
-        [%expr Metapp.Exp.var construct_name]
+        Metapp.Exp.var construct_name
       else
         bindings, desc)
       [] (List.combine constructors descs)
@@ -1869,7 +1869,7 @@ let structure_of_constr context
     (Constraints.add_direct_kind "Constr");
   let expr =
     [%expr Refl.Constr {
-      constructors = assert false (* [%e ReflValueExp.binary_choices_of_list descs] *);
+      constructors = [%e ReflValueExp.binary_choices_of_list descs];
       construct = [%e make_fun_type choice_ty context.type_expr construct];
       destruct = [%e make_fun_type context.type_expr choice_ty destruct];
     }] in
