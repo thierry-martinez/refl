@@ -1644,10 +1644,9 @@ let structure_of_exists single_constructor ctor_count i context
         ReflValueVal.construct (Lident constraints) [] in
       [(Ppxlib.Ast_helper.Te.mk (Metapp.mkloc (refl_dot "gadt_constraints"))
           ~params:[[%type: _], empty_type_annotation; [%type: _], empty_type_annotation]
-           [Ppxlib.Ast_helper.Te.constructor (Metapp.mkloc constraints)
-              (Pext_decl (Pcstr_tuple [], Some
-                [%type: ([%t parameter_tuple], [%t parameter_sequence])
-                  Refl.gadt_constraints]))])], constraints_pattern in
+           [Ppxlib.Ast_helper.Te.decl (Metapp.mkloc constraints)
+             ~res:[%type: ([%t parameter_tuple], [%t parameter_sequence])
+                  Refl.gadt_constraints]])], constraints_pattern in
   let parameter_type_vars =
     parameters |> List.map begin fun (index, _) ->
       Ppxlib.Ast_helper.Typ.var (type_arg index)
@@ -1979,10 +1978,8 @@ let subgadt_mapper context type_extensions =
             type_extensions :=
               Ppxlib.Ast_helper.Te.mk (Metapp.mkloc (refl_dot "sub_gadt_ext"))
            ~params:[[%type: _], empty_type_annotation; [%type: _], empty_type_annotation]
-           [Ppxlib.Ast_helper.Te.constructor (Metapp.mkloc constructor_name)
-              (Pext_decl (Pcstr_tuple [], Some
-                [%type: ([%t base], [%t sub])
-                  Refl.sub_gadt_ext]))] ::
+           [Ppxlib.Ast_helper.Te.decl (Metapp.mkloc constructor_name)
+              ~res:[%type: ([%t base], [%t sub]) Refl.sub_gadt_ext]] ::
               !type_extensions;
             [%expr
                let sub_gadt_functional : type gadt sub_gadt0 sub_gadt1 .
@@ -2032,10 +2029,9 @@ let type_structure_of_type_info rec_types type_info =
   let type_extensions =
     Ppxlib.Ast_helper.Te.mk (Metapp.mkloc (refl_dot "refl"))
       ~params:[[%type: _], empty_type_annotation]
-      [Ppxlib.Ast_helper.Te.constructor
+      [Ppxlib.Ast_helper.Te.decl
         (Metapp.mkloc context.type_names.refl_ctor)
-        (Pext_decl (Pcstr_tuple [], Some
-          [%type: [%t context.type_expr] Refl.refl]))]
+        ~res:[%type: [%t context.type_expr] Refl.refl]]
   :: type_extensions in
   ((declarations @ type_declarations), (type_extensions, value_bindings)),
   { type_info; context; arity_type; structure; unwrapped_desc; constraints;
