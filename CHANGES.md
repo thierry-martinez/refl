@@ -1,4 +1,4 @@
-# Development version
+# v0.4.1 - 2022-11-16
 - Compatibility with ppxlib 0.26
 
 # v0.4.0 - 2021-02-19
